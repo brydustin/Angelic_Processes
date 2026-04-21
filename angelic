@@ -3,7 +3,12 @@
 # Run as: ./angelic   (from anywhere — this script cds into its own dir)
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
+# Use UTP2 (the PARENT session) as the preloaded heap — NOT Angelic_Processes.
+# Loading -l Angelic_Processes would bake Angelic_Processes.thy into the heap,
+# and any edit to it then fails to re-elaborate cleanly and breaks sledgehammer.
+# With -l UTP2, the heap is the stable Foster/UTP library stack and our working
+# theory is elaborated fresh on every edit.
 exec env ISABELLE_IDENTIFIER=IsabelleAPRoadmap \
   ./Isabelle2025-2/bin/isabelle jedit \
-    -l Angelic_Processes \
+    -l UTP2 \
     Angelic_Processes.thy "$@"

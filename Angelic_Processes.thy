@@ -36,6 +36,21 @@ definition ap_term_image :: "'s set \<Rightarrow> 's ap_ext_state set" where
 definition ap_term_part :: "'s ap_ext_state set \<Rightarrow> 's set" where
   "ap_term_part X = {s. AP_Term s \<in> X}"
 
+lemma ap_term_image_part_id:
+  assumes "AP_Nonterm \<notin> X"
+  shows "ap_term_image (ap_term_part X) = X"
+proof -
+  have "\<And>x. x \<in> ap_term_image (ap_term_part X) \<longleftrightarrow> x \<in> X"
+  proof -
+    fix x
+    show "x \<in> ap_term_image (ap_term_part X) \<longleftrightarrow> x \<in> X"
+      using assms
+      unfolding ap_term_image_def ap_term_part_def
+      by (cases x) auto
+  qed
+  thus ?thesis by blast
+qed
+
 definition ap_BMH0 :: "'s ap_bmb \<Rightarrow> bool" where
   "ap_BMH0 B \<longleftrightarrow>
     (\<forall>s X Y. (s, X) \<in> B \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)
@@ -107,70 +122,968 @@ definition ap_bm2bmb :: "'s ap_bm \<Rightarrow> 's ap_bmb" where
 
 lemma ap_BMH0_fixed_point_iff:
   "ap_BMH0 B \<longleftrightarrow> ap_bmh0 B = B"
-  sorry
+  unfolding ap_BMH0_def ap_bmh0_def
+  by blast
 
 lemma ap_BMH1_fixed_point_iff:
   "ap_BMH1 B \<longleftrightarrow> ap_bmh1 B = B"
-  sorry
+  unfolding ap_BMH1_def ap_bmh1_def
+proof
+  assume H:
+    "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B"
+  show "{(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B} = B"
+  proof
+    show "{(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B} \<subseteq> B"
+    proof
+      fix p
+      assume "p \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}"
+      then obtain s X where
+        p_def: "p = (s, X)"
+        and mem: "(s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B"
+        by blast
+      show "p \<in> B"
+      proof (cases "(s, X) \<in> B")
+        case True
+        with p_def show ?thesis
+          by simp
+      next
+        case False
+        with mem have ins: "(s, insert AP_Nonterm X) \<in> B"
+          by blast
+        from H ins have step: "(s, X - {AP_Nonterm}) \<in> B"
+          by blast
+        from False ins have "AP_Nonterm \<notin> X"
+          by (metis insert_absorb)
+        then have "X - {AP_Nonterm} = X"
+          by blast
+        with step p_def show ?thesis
+          by simp
+      qed
+    qed
+  next
+    show "B \<subseteq> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}"
+      by blast
+  qed
+next
+  assume H:
+    "{(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B} = B"
+  show "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B"
+  proof (intro allI impI)
+    fix s X
+    assume ins: "(s, insert AP_Nonterm X) \<in> B"
+    have "(s, X - {AP_Nonterm}) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}"
+    proof -
+      have "insert AP_Nonterm (X - {AP_Nonterm}) = insert AP_Nonterm X"
+        by blast
+      with ins have "(s, insert AP_Nonterm (X - {AP_Nonterm})) \<in> B"
+        by simp
+      then show ?thesis
+        by blast
+    qed
+    with H show "(s, X - {AP_Nonterm}) \<in> B"
+      by simp
+  qed
+qed
 
 lemma ap_BMH2_fixed_point_iff:
   "ap_BMH2 B \<longleftrightarrow> ap_bmh2 B = B"
-  sorry
+  unfolding ap_BMH2_def ap_bmh2_def
+proof
+  assume H:
+    "\<forall>s. (s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+  show "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} = B"
+  proof
+    show "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<subseteq> B"
+      by blast
+  next
+    show "B \<subseteq> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}"
+    proof
+      fix p
+      assume "p \<in> B"
+      then obtain s X where
+        p_def: "p = (s, X)"
+        and mem: "(s, X) \<in> B"
+        by (cases p) blast
+      from H have eq: "(s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+        by blast
+      from mem eq have "(s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)"
+        by simp
+      with p_def show "p \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}"
+        by blast
+    qed
+  qed
+next
+  assume H:
+    "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} = B"
+  show "\<forall>s. (s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+  proof
+    fix s
+    show "(s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+    proof
+      assume empty: "(s, {}) \<in> B"
+      have "(s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}"
+        using H empty by simp
+      then show "(s, {AP_Nonterm}) \<in> B"
+        by blast
+    next
+      assume nonterm: "(s, {AP_Nonterm}) \<in> B"
+      have "(s, {AP_Nonterm}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}"
+        using H nonterm by simp
+      then show "(s, {}) \<in> B"
+        by blast
+    qed
+  qed
+qed
 
 lemma ap_BMH3_fixed_point_iff:
   "ap_BMH3 B \<longleftrightarrow> ap_bmh3 B = B"
-  sorry
+  unfolding ap_BMH3_def ap_bmh3_def
+proof
+  assume H:
+    "\<forall>s X. (s, {}) \<notin> B \<and> (s, X) \<in> B \<longrightarrow> AP_Nonterm \<notin> X"
+  show "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} = B"
+  proof
+    show "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<subseteq> B"
+      by blast
+  next
+    show "B \<subseteq> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}"
+    proof
+      fix p
+      assume "p \<in> B"
+      then obtain s X where
+        p_def: "p = (s, X)"
+        and mem: "(s, X) \<in> B"
+        by (cases p) blast
+      have "(s, {}) \<in> B \<or> AP_Nonterm \<notin> X"
+      proof (cases "(s, {}) \<in> B")
+        case True
+        then show ?thesis
+          by simp
+      next
+        case False
+        with H mem show ?thesis
+          by blast
+      qed
+      with mem p_def show "p \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}"
+        by blast
+    qed
+  qed
+next
+  assume H:
+    "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} = B"
+  show "\<forall>s X. (s, {}) \<notin> B \<and> (s, X) \<in> B \<longrightarrow> AP_Nonterm \<notin> X"
+  proof (intro allI impI)
+    fix s X
+    assume asm: "(s, {}) \<notin> B \<and> (s, X) \<in> B"
+    then have "(s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}"
+      using H by simp
+    with asm show "AP_Nonterm \<notin> X"
+      by blast
+  qed
+qed
 
 lemma ap_bmh0_idem: "ap_bmh0 (ap_bmh0 B) = ap_bmh0 B"
-  sorry
+  unfolding ap_bmh0_def
+proof
+  show "{(s, Y). \<exists>X. (s, X) \<in> {(s, Y). \<exists>X. (s, X) \<in> B \<and> X \<subseteq> Y \<and>
+             (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)} \<and>
+           X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)}
+        \<subseteq> {(s, Y). \<exists>X. (s, X) \<in> B \<and> X \<subseteq> Y \<and>
+             (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)}"
+  proof
+    fix p
+    assume "p \<in> {(s, Y). \<exists>X. (s, X) \<in> {(s, Y). \<exists>X. (s, X) \<in> B \<and> X \<subseteq> Y \<and>
+             (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)} \<and>
+           X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)}"
+    then obtain s Y X Z where
+      p_def: "p = (s, Y)"
+      and z_mem: "(s, Z) \<in> B"
+      and z_x: "Z \<subseteq> X"
+      and x_y: "X \<subseteq> Y"
+      and z_x_nt: "AP_Nonterm \<in> Z \<longleftrightarrow> AP_Nonterm \<in> X"
+      and x_y_nt: "AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y"
+      by blast
+    from z_x x_y have "Z \<subseteq> Y"
+      by blast
+    moreover from z_x_nt x_y_nt have "AP_Nonterm \<in> Z \<longleftrightarrow> AP_Nonterm \<in> Y"
+      by blast
+    ultimately have "\<exists>X. (s, X) \<in> B \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)"
+      using z_mem by blast
+    with p_def show "p \<in> {(s, Y). \<exists>X. (s, X) \<in> B \<and> X \<subseteq> Y \<and>
+        (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)}"
+      by blast
+  qed
+next
+  show "{(s, Y). \<exists>X. (s, X) \<in> B \<and> X \<subseteq> Y \<and>
+          (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)}
+        \<subseteq> {(s, Y). \<exists>X. (s, X) \<in> {(s, Y). \<exists>X. (s, X) \<in> B \<and> X \<subseteq> Y \<and>
+             (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)} \<and>
+           X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)}"
+    by blast
+qed
 
 lemma ap_bmh1_idem: "ap_bmh1 (ap_bmh1 B) = ap_bmh1 B"
-  sorry
+  unfolding ap_bmh1_def
+proof
+  show "{(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B} \<or>
+           (s, insert AP_Nonterm X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}}
+        \<subseteq> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}"
+  proof
+    fix p
+    assume "p \<in> {(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B} \<or>
+             (s, insert AP_Nonterm X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}}"
+    then obtain s X where
+      p_def: "p = (s, X)"
+      and mem: "(s, X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B} \<or>
+        (s, insert AP_Nonterm X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}"
+      by blast
+    show "p \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}"
+    proof (cases "(s, X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}")
+      case True
+      with p_def show ?thesis by simp
+    next
+      case False
+      with mem have "(s, insert AP_Nonterm X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}"
+        by blast
+      then have "(s, insert AP_Nonterm X) \<in> B"
+        by simp
+      then show ?thesis
+        using p_def by blast
+    qed
+  qed
+next
+  show "{(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}
+        \<subseteq> {(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B} \<or>
+             (s, insert AP_Nonterm X) \<in> {(s, X). (s, X) \<in> B \<or> (s, insert AP_Nonterm X) \<in> B}}"
+    by blast
+qed
 
 lemma ap_bmh2_idem: "ap_bmh2 (ap_bmh2 B) = ap_bmh2 B"
-  sorry
+  unfolding ap_bmh2_def
+proof
+  show "{(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<and>
+           ((s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<longleftrightarrow>
+            (s, {AP_Nonterm}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)})}
+        \<subseteq> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}"
+    by blast
+next
+  show "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}
+        \<subseteq> {(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<and>
+             ((s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<longleftrightarrow>
+              (s, {AP_Nonterm}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)})}"
+  proof
+    fix p
+    assume "p \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}"
+    then obtain s X where
+      p_def: "p = (s, X)"
+      and mem: "(s, X) \<in> B"
+      and eq: "(s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+      by blast
+    from mem eq have left_mem:
+      "(s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)}"
+      by blast
+    from eq have empty_eq:
+      "((s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<longleftrightarrow>
+       (s, {AP_Nonterm}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)})"
+      by blast
+    from left_mem empty_eq p_def show
+      "p \<in> {(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<and>
+        ((s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)} \<longleftrightarrow>
+         (s, {AP_Nonterm}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B)})}"
+      by blast
+  qed
+qed
 
 lemma ap_bmh3_idem: "ap_bmh3 (ap_bmh3 B) = ap_bmh3 B"
-  sorry
+  unfolding ap_bmh3_def
+proof
+  show "{(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<and>
+           ((s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<or> AP_Nonterm \<notin> X)}
+        \<subseteq> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}"
+    by blast
+next
+  show "{(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}
+        \<subseteq> {(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<and>
+             ((s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<or> AP_Nonterm \<notin> X)}"
+  proof
+    fix p
+    assume "p \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}"
+    then obtain s X where
+      p_def: "p = (s, X)"
+      and mem: "(s, X) \<in> B"
+      and cond: "(s, {}) \<in> B \<or> AP_Nonterm \<notin> X"
+      by blast
+    from mem cond have left_mem:
+      "(s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}"
+      by blast
+    have "(s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<or> AP_Nonterm \<notin> X"
+    proof (cases "AP_Nonterm \<in> X")
+      case True
+      with cond have empty: "(s, {}) \<in> B"
+        by blast
+      then have "(s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)}"
+        by blast
+      then show ?thesis
+        by blast
+    next
+      case False
+      then show ?thesis
+        by blast
+    qed
+    with left_mem p_def show
+      "p \<in> {(s, X). (s, X) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<and>
+        ((s, {}) \<in> {(s, X). (s, X) \<in> B \<and> ((s, {}) \<in> B \<or> AP_Nonterm \<notin> X)} \<or> AP_Nonterm \<notin> X)}"
+      by blast
+  qed
+qed
 
 lemma ap_bmh012_characterisation:
   "ap_BMH_bot B \<longleftrightarrow> ap_bmh012 B = B"
-  sorry
+  unfolding ap_BMH_bot_def ap_bmh012_def
+proof
+  assume H: "ap_BMH0 B \<and> ap_BMH1 B \<and> ap_BMH2 B"
+  from H have bmh0: "ap_bmh0 B = B"
+    using ap_BMH0_fixed_point_iff by blast
+  from H have bmh1: "ap_bmh1 B = B"
+    using ap_BMH1_fixed_point_iff by blast
+  from H have bmh2: "ap_bmh2 B = B"
+    using ap_BMH2_fixed_point_iff by blast
+  from bmh0 bmh1 bmh2 show "ap_bmh0 (ap_bmh1 (ap_bmh2 B)) = B"
+    by simp
+next
+  assume H: "ap_bmh0 (ap_bmh1 (ap_bmh2 B)) = B"
+  let ?D = "ap_bmh2 B"
+  let ?C = "ap_bmh1 ?D"
+  have B_eq: "B = ap_bmh0 ?C"
+    using H by simp
+
+  have bmh0: "ap_BMH0 B"
+  proof -
+    have "ap_bmh0 B = B"
+      using H ap_bmh0_idem by metis
+    then show ?thesis
+      using ap_BMH0_fixed_point_iff by blast
+  qed
+
+  have bmh1: "ap_BMH1 B"
+    unfolding ap_BMH1_def
+  proof (intro allI impI)
+    fix s X
+    assume ins: "(s, insert AP_Nonterm X) \<in> B"
+    from B_eq ins obtain Y where
+      y_mem: "(s, Y) \<in> ?C"
+      and y_sub: "Y \<subseteq> insert AP_Nonterm X"
+      and y_nt: "AP_Nonterm \<in> Y \<longleftrightarrow> AP_Nonterm \<in> insert AP_Nonterm X"
+      unfolding ap_bmh0_def by blast
+    from y_nt have nt_y: "AP_Nonterm \<in> Y"
+      by simp
+    from y_mem nt_y have d_mem: "(s, Y) \<in> ?D"
+      unfolding ap_bmh1_def
+      by (simp add: insert_absorb) 
+    from nt_y have "(s, Y - {AP_Nonterm}) \<in> ?C"
+      using d_mem unfolding ap_bmh1_def
+      by (simp add: insert_absorb) 
+    moreover from y_sub have "Y - {AP_Nonterm} \<subseteq> X - {AP_Nonterm}"
+      by blast
+    moreover have "AP_Nonterm \<in> Y - {AP_Nonterm} \<longleftrightarrow> AP_Nonterm \<in> X - {AP_Nonterm}"
+      by simp
+    ultimately have "(s, X - {AP_Nonterm}) \<in> ap_bmh0 ?C"
+      unfolding ap_bmh0_def by blast
+    with B_eq show "(s, X - {AP_Nonterm}) \<in> B"
+      by simp
+  qed
+
+  have bmh2: "ap_BMH2 B"
+    unfolding ap_BMH2_def
+  proof
+    fix s
+    show "(s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+    proof
+      assume empty: "(s, {}) \<in> B"
+      from B_eq empty obtain Y where
+        y_mem: "(s, Y) \<in> ?C"
+        and y_sub: "Y \<subseteq> {}"
+        and y_nt: "AP_Nonterm \<in> Y \<longleftrightarrow> AP_Nonterm \<in> {}"
+        unfolding ap_bmh0_def by blast
+      from y_sub have y_empty: "Y = {}"
+        by blast
+      from y_mem y_empty have "(s, {}) \<in> ?D \<or> (s, {AP_Nonterm}) \<in> ?D"
+        unfolding ap_bmh1_def by simp
+      then show "(s, {AP_Nonterm}) \<in> B"
+        unfolding ap_bmh2_def by blast
+    next
+      assume nonterm: "(s, {AP_Nonterm}) \<in> B"
+      from B_eq nonterm obtain Y where
+        y_mem: "(s, Y) \<in> ?C"
+        and y_sub: "Y \<subseteq> {AP_Nonterm}"
+        and y_nt: "AP_Nonterm \<in> Y \<longleftrightarrow> AP_Nonterm \<in> {AP_Nonterm}"
+        unfolding ap_bmh0_def by blast
+      from y_sub y_nt have y_nonterm: "Y = {AP_Nonterm}"
+        by blast
+      from y_mem y_nonterm have "(s, {AP_Nonterm}) \<in> ?D"
+        unfolding ap_bmh1_def by simp
+      then show "(s, {}) \<in> B"
+        unfolding ap_bmh2_def by blast
+    qed
+  qed
+
+  from bmh0 bmh1 bmh2 show "ap_BMH0 B \<and> ap_BMH1 B \<and> ap_BMH2 B"
+    by blast
+qed
 
 lemma ap_bmh0132_characterisation:
   "ap_BMH_orig_subset B \<longleftrightarrow> ap_bmh0132 B = B"
-  sorry
+  unfolding ap_BMH_orig_subset_def ap_BMH_bot_def ap_bmh0132_def
+proof
+  assume H: "(ap_BMH0 B \<and> ap_BMH1 B \<and> ap_BMH2 B) \<and> ap_BMH3 B"
+  from H have bmh0: "ap_bmh0 B = B"
+    using ap_BMH0_fixed_point_iff by blast
+  from H have bmh1: "ap_bmh1 B = B"
+    using ap_BMH1_fixed_point_iff by blast
+  from H have bmh2: "ap_bmh2 B = B"
+    using ap_BMH2_fixed_point_iff by blast
+  from H have bmh3: "ap_bmh3 B = B"
+    using ap_BMH3_fixed_point_iff by blast
+  from bmh2 bmh3 have step3: "ap_bmh3 (ap_bmh2 B) = B"
+    by simp
+  from step3 bmh1 have step1: "ap_bmh1 (ap_bmh3 (ap_bmh2 B)) = B"
+    by simp
+  have comp: "ap_bmh0 (ap_bmh1 (ap_bmh3 (ap_bmh2 B))) = B"
+    using step1 bmh0 by simp
+  show "ap_bmh0 (ap_bmh1 (ap_bmh3 (ap_bmh2 B))) = B"
+    using comp by blast
+next
+  assume H: "ap_bmh0 (ap_bmh1 (ap_bmh3 (ap_bmh2 B))) = B"
+  let ?D = "ap_bmh3 (ap_bmh2 B)"
+  let ?C = "ap_bmh1 ?D"
+  have B_eq: "B = ap_bmh0 ?C"
+    using H by simp
+
+  have bmh0: "ap_BMH0 B"
+  proof -
+    have "ap_bmh0 B = B"
+      using H ap_bmh0_idem by metis
+    then show ?thesis
+      using ap_BMH0_fixed_point_iff by blast
+  qed
+
+  have bmh1: "ap_BMH1 B"
+    unfolding ap_BMH1_def
+  proof (intro allI impI)
+    fix s X
+    assume ins: "(s, insert AP_Nonterm X) \<in> B"
+    from B_eq ins obtain Y where
+      y_mem: "(s, Y) \<in> ?C"
+      and y_sub: "Y \<subseteq> insert AP_Nonterm X"
+      and y_nt: "AP_Nonterm \<in> Y \<longleftrightarrow> AP_Nonterm \<in> insert AP_Nonterm X"
+      unfolding ap_bmh0_def by blast
+    from y_nt have nt_y: "AP_Nonterm \<in> Y"
+      by simp
+    from y_mem nt_y have d_mem: "(s, Y) \<in> ?D"
+      unfolding ap_bmh1_def by (simp add: insert_absorb)
+    from nt_y have "insert AP_Nonterm (Y - {AP_Nonterm}) = Y"
+      by blast
+    with d_mem have "(s, Y - {AP_Nonterm}) \<in> ?C"
+      unfolding ap_bmh1_def by force
+    moreover from y_sub have "Y - {AP_Nonterm} \<subseteq> X - {AP_Nonterm}"
+      by blast
+    moreover have "AP_Nonterm \<in> Y - {AP_Nonterm} \<longleftrightarrow> AP_Nonterm \<in> X - {AP_Nonterm}"
+      by simp
+    ultimately have "(s, X - {AP_Nonterm}) \<in> ap_bmh0 ?C"
+      unfolding ap_bmh0_def by blast
+    with B_eq show "(s, X - {AP_Nonterm}) \<in> B"
+      by simp
+  qed
+
+  have bmh2: "ap_BMH2 B"
+    unfolding ap_BMH2_def
+  proof
+    fix s
+    show "(s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+    proof
+      assume empty: "(s, {}) \<in> B"
+      from B_eq empty obtain Y where
+        y_mem: "(s, Y) \<in> ?C"
+        and y_sub: "Y \<subseteq> {}"
+        and y_nt: "AP_Nonterm \<in> Y \<longleftrightarrow> AP_Nonterm \<in> {}"
+        unfolding ap_bmh0_def by blast
+      from y_sub have y_empty: "Y = {}"
+        by blast
+      from y_mem y_empty have "(s, {}) \<in> ?D \<or> (s, {AP_Nonterm}) \<in> ?D"
+        unfolding ap_bmh1_def by simp
+      then show "(s, {AP_Nonterm}) \<in> B"
+        unfolding ap_bmh3_def ap_bmh2_def by blast
+    next
+      assume nonterm: "(s, {AP_Nonterm}) \<in> B"
+      from B_eq nonterm obtain Y where
+        y_mem: "(s, Y) \<in> ?C"
+        and y_sub: "Y \<subseteq> {AP_Nonterm}"
+        and y_nt: "AP_Nonterm \<in> Y \<longleftrightarrow> AP_Nonterm \<in> {AP_Nonterm}"
+        unfolding ap_bmh0_def by blast
+      from y_sub y_nt have y_nonterm: "Y = {AP_Nonterm}"
+        by blast
+      from y_mem y_nonterm have "(s, {AP_Nonterm}) \<in> ?D"
+        unfolding ap_bmh1_def by simp
+      then show "(s, {}) \<in> B"
+        unfolding ap_bmh3_def ap_bmh2_def by blast
+    qed
+  qed
+
+  have bmh3: "ap_BMH3 B"
+    unfolding ap_BMH3_def
+  proof (intro allI impI)
+    fix s X
+    assume asm: "(s, {}) \<notin> B \<and> (s, X) \<in> B"
+    then have mem: "(s, X) \<in> B"
+      by blast
+    from B_eq mem obtain Y where
+      y_mem: "(s, Y) \<in> ?C"
+      and y_sub: "Y \<subseteq> X"
+      and y_nt: "AP_Nonterm \<in> Y \<longleftrightarrow> AP_Nonterm \<in> X"
+      unfolding ap_bmh0_def by blast
+    show "AP_Nonterm \<notin> X"
+    proof
+      assume nt_x: "AP_Nonterm \<in> X"
+      with y_nt have nt_y: "AP_Nonterm \<in> Y"
+        by blast
+      from y_mem nt_y have d_mem: "(s, Y) \<in> ?D"
+        unfolding ap_bmh1_def by (simp add: insert_absorb)
+      from d_mem nt_y have "(s, {}) \<in> ap_bmh2 B"
+        unfolding ap_bmh3_def by blast
+      then have "(s, {}) \<in> B"
+        unfolding ap_bmh2_def by blast
+      with asm show False
+        by blast
+    qed
+  qed
+
+  from bmh0 bmh1 bmh2 bmh3 show " (ap_BMH0 B \<and> ap_BMH1 B \<and> ap_BMH2 B) \<and> ap_BMH3 B"
+    by blast
+qed
 
 lemma ap_bmb_angelic_closed:
   assumes "ap_BMH_bot B" "ap_BMH_bot C"
   shows "ap_BMH_bot (B \<squnion>\<^sub>B\<^sub>M\<^sub>\<bottom> C)"
-  sorry
+  unfolding ap_BMH_bot_def ap_BMH0_def ap_BMH1_def ap_BMH2_def ap_bmb_angelic_def
+proof (intro conjI)
+  show "\<forall>s X Y.
+      (s, X) \<in> B \<inter> C \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow>
+      (s, Y) \<in> B \<inter> C"
+  proof (intro allI impI)
+    fix s X Y
+    assume asm:
+      "(s, X) \<in> B \<inter> C \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)"
+    from assms(1) have B0:
+      "\<forall>s X Y. (s, X) \<in> B \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow> (s, Y) \<in> B"
+      unfolding ap_BMH_bot_def ap_BMH0_def by blast
+    from assms(2) have C0:
+      "\<forall>s X Y. (s, X) \<in> C \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow> (s, Y) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH0_def by blast
+    from asm B0 have "(s, Y) \<in> B"
+      by blast
+    moreover from asm C0 have "(s, Y) \<in> C"
+      by blast
+    ultimately show "(s, Y) \<in> B \<inter> C"
+      by blast
+  qed
+next
+  show "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<inter> C \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B \<inter> C"
+  proof (intro allI impI)
+    fix s X
+    assume ins: "(s, insert AP_Nonterm X) \<in> B \<inter> C"
+    from assms(1) have B1:
+      "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B"
+      unfolding ap_BMH_bot_def ap_BMH1_def by blast
+    from assms(2) have C1:
+      "\<forall>s X. (s, insert AP_Nonterm X) \<in> C \<longrightarrow> (s, X - {AP_Nonterm}) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH1_def by blast
+    from ins B1 have "(s, X - {AP_Nonterm}) \<in> B"
+      by blast
+    moreover from ins C1 have "(s, X - {AP_Nonterm}) \<in> C"
+      by blast
+    ultimately show "(s, X - {AP_Nonterm}) \<in> B \<inter> C"
+      by blast
+  qed
+next
+  show "\<forall>s. ((s, {}) \<in> B \<inter> C) = ((s, {AP_Nonterm}) \<in> B \<inter> C)"
+  proof
+    fix s
+    from assms(1) have B2: "(s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+      unfolding ap_BMH_bot_def ap_BMH2_def by blast
+    from assms(2) have C2: "(s, {}) \<in> C \<longleftrightarrow> (s, {AP_Nonterm}) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH2_def by blast
+    from B2 C2 show "((s, {}) \<in> B \<inter> C) = ((s, {AP_Nonterm}) \<in> B \<inter> C)"
+      by blast
+  qed
+qed
 
 lemma ap_bmb_demonic_closed:
   assumes "ap_BMH_bot B" "ap_BMH_bot C"
   shows "ap_BMH_bot (B \<sqinter>\<^sub>B\<^sub>M\<^sub>\<bottom> C)"
-  sorry
+  unfolding ap_BMH_bot_def ap_BMH0_def ap_BMH1_def ap_BMH2_def ap_bmb_demonic_def
+proof (intro conjI)
+  show "\<forall>s X Y.
+      (s, X) \<in> B \<union> C \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow>
+      (s, Y) \<in> B \<union> C"
+  proof (intro allI impI)
+    fix s X Y
+    assume asm:
+      "(s, X) \<in> B \<union> C \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y)"
+    from assms(1) have B0:
+      "\<forall>s X Y. (s, X) \<in> B \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow> (s, Y) \<in> B"
+      unfolding ap_BMH_bot_def ap_BMH0_def by blast
+    from assms(2) have C0:
+      "\<forall>s X Y. (s, X) \<in> C \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow> (s, Y) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH0_def by blast
+    from asm B0 C0 show "(s, Y) \<in> B \<union> C"
+      by blast
+  qed
+next
+  show "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<union> C \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B \<union> C"
+  proof (intro allI impI)
+    fix s X
+    assume ins: "(s, insert AP_Nonterm X) \<in> B \<union> C"
+    from assms(1) have B1:
+      "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B"
+      unfolding ap_BMH_bot_def ap_BMH1_def by blast
+    from assms(2) have C1:
+      "\<forall>s X. (s, insert AP_Nonterm X) \<in> C \<longrightarrow> (s, X - {AP_Nonterm}) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH1_def by blast
+    from ins B1 C1 show "(s, X - {AP_Nonterm}) \<in> B \<union> C"
+      by blast
+  qed
+next
+  show "\<forall>s. ((s, {}) \<in> B \<union> C) = ((s, {AP_Nonterm}) \<in> B \<union> C)"
+  proof
+    fix s
+    from assms(1) have B2: "(s, {}) \<in> B \<longleftrightarrow> (s, {AP_Nonterm}) \<in> B"
+      unfolding ap_BMH_bot_def ap_BMH2_def by blast
+    from assms(2) have C2: "(s, {}) \<in> C \<longleftrightarrow> (s, {AP_Nonterm}) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH2_def by blast
+    from B2 C2 show "((s, {}) \<in> B \<union> C) = ((s, {AP_Nonterm}) \<in> B \<union> C)"
+      by blast
+  qed
+qed
 
 lemma ap_bmb_seq_closed:
   assumes "ap_BMH_bot B" "ap_BMH_bot C"
   shows "ap_BMH_bot (B ;\<^sub>B\<^sub>M\<^sub>\<bottom> C)"
-  sorry
+  unfolding ap_BMH_bot_def ap_BMH0_def ap_BMH1_def ap_BMH2_def ap_bmb_seq_def
+proof (intro conjI)
+  show "\<forall>s Z Y.
+      (s, Z) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)} \<and>
+      Z \<subseteq> Y \<and> (AP_Nonterm \<in> Z \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow>
+      (s, Y) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+  proof (intro allI impI)
+    fix s Z Y
+    assume asm:
+      "(s, Z) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)} \<and>
+       Z \<subseteq> Y \<and> (AP_Nonterm \<in> Z \<longleftrightarrow> AP_Nonterm \<in> Y)"
+    then obtain X where
+      x_mem: "(s, X) \<in> B"
+      and x_cond: "(AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X"
+      and c_z: "\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C"
+      and z_y: "Z \<subseteq> Y"
+      and z_y_nt: "AP_Nonterm \<in> Z \<longleftrightarrow> AP_Nonterm \<in> Y"
+      by blast
+    from assms(2) have C0:
+      "\<forall>s X Y. (s, X) \<in> C \<and> X \<subseteq> Y \<and> (AP_Nonterm \<in> X \<longleftrightarrow> AP_Nonterm \<in> Y) \<longrightarrow> (s, Y) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH0_def by blast
+    have c_y: "\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Y) \<in> C"
+    proof (intro allI impI)
+      fix t
+      assume term_mem: "AP_Term t \<in> X"
+      with c_z have "(t, Z) \<in> C"
+        by blast
+      with C0 z_y z_y_nt show "(t, Y) \<in> C"
+        by blast
+    qed
+    from x_cond z_y_nt have "(AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Y) \<or> AP_Nonterm \<notin> X"
+      by blast
+    with x_mem c_y show
+      "(s, Y) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+      by auto
+  qed
+next
+  show "\<forall>s Z.
+      (s, insert AP_Nonterm Z) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)} \<longrightarrow>
+      (s, Z - {AP_Nonterm}) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+  proof (intro allI impI)
+    fix s Z
+    assume ins:
+      "(s, insert AP_Nonterm Z) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+    then obtain X where
+      x_mem: "(s, X) \<in> B"
+      and c_ins: "\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, insert AP_Nonterm Z) \<in> C"
+      by blast
+    from assms(1) have B1:
+      "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B"
+      unfolding ap_BMH_bot_def ap_BMH1_def by blast
+    from assms(2) have C1:
+      "\<forall>s X. (s, insert AP_Nonterm X) \<in> C \<longrightarrow> (s, X - {AP_Nonterm}) \<in> C"
+      unfolding ap_BMH_bot_def ap_BMH1_def by blast
+    let ?X = "X - {AP_Nonterm}"
+    have x'_mem: "(s, ?X) \<in> B"
+    proof (cases "AP_Nonterm \<in> X")
+      case True
+      then have "insert AP_Nonterm (X - {AP_Nonterm}) = X"
+        by blast
+      with x_mem B1 show ?thesis
+        by force
+    next
+      case False
+      with x_mem show ?thesis
+        by simp
+    qed
+    have c_z: "\<forall>t. AP_Term t \<in> ?X \<longrightarrow> (t, Z - {AP_Nonterm}) \<in> C"
+    proof (intro allI impI)
+      fix t
+      assume term_mem: "AP_Term t \<in> ?X"
+      then have "AP_Term t \<in> X"
+        by blast
+      with c_ins have "(t, insert AP_Nonterm Z) \<in> C"
+        by blast
+      from C1 this have "(t, Z - {AP_Nonterm}) \<in> C"
+        by blast
+      then show "(t, Z - {AP_Nonterm}) \<in> C"
+        by simp
+    qed
+    have "AP_Nonterm \<notin> ?X"
+      by simp
+    with x'_mem c_z show
+      "(s, Z - {AP_Nonterm}) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+      by auto
+  qed
+next
+  show "\<forall>s.
+      ((s, {}) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}) =
+      ((s, {AP_Nonterm}) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)})"
+  proof
+    fix s
+    show "((s, {}) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}) =
+      ((s, {AP_Nonterm}) \<in>
+        {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+          ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+          (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)})"
+    proof
+      assume empty:
+        "(s, {}) \<in>
+          {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+            ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+            (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+      then obtain X where
+        x_mem: "(s, X) \<in> B"
+        and nt_x: "AP_Nonterm \<notin> X"
+        and c_empty: "\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, {}) \<in> C"
+        by blast
+      from assms(2) have C2:
+        "\<forall>s. (s, {}) \<in> C \<longleftrightarrow> (s, {AP_Nonterm}) \<in> C"
+        unfolding ap_BMH_bot_def ap_BMH2_def by blast
+      have c_nonterm: "\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, {AP_Nonterm}) \<in> C"
+        using c_empty C2 by blast
+      from x_mem nt_x c_nonterm show
+        "(s, {AP_Nonterm}) \<in>
+          {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+            ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+            (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+        by auto
+    next
+      assume nonterm:
+        "(s, {AP_Nonterm}) \<in>
+          {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+            ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+            (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+      then obtain X where
+        x_mem: "(s, X) \<in> B"
+        and c_nonterm: "\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, {AP_Nonterm}) \<in> C"
+        by blast
+      from assms(1) have B1:
+        "\<forall>s X. (s, insert AP_Nonterm X) \<in> B \<longrightarrow> (s, X - {AP_Nonterm}) \<in> B"
+        unfolding ap_BMH_bot_def ap_BMH1_def by blast
+      from assms(2) have C2:
+        "\<forall>s. (s, {}) \<in> C \<longleftrightarrow> (s, {AP_Nonterm}) \<in> C"
+        unfolding ap_BMH_bot_def ap_BMH2_def by blast
+      let ?X = "X - {AP_Nonterm}"
+      have x'_mem: "(s, ?X) \<in> B"
+      proof (cases "AP_Nonterm \<in> X")
+        case True
+        then have "insert AP_Nonterm (X - {AP_Nonterm}) = X"
+          by blast
+        with x_mem B1 show ?thesis
+          by force
+      next
+        case False
+        with x_mem show ?thesis
+          by simp
+      qed
+      have c_empty: "\<forall>t. AP_Term t \<in> ?X \<longrightarrow> (t, {}) \<in> C"
+      proof (intro allI impI)
+        fix t
+        assume term_mem: "AP_Term t \<in> ?X"
+        then have "AP_Term t \<in> X"
+          by blast
+        with c_nonterm have "(t, {AP_Nonterm}) \<in> C"
+          by blast
+        with C2 show "(t, {}) \<in> C"
+          by blast
+      qed
+      have "AP_Nonterm \<notin> ?X"
+        by simp
+      with x'_mem c_empty show
+        "(s, {}) \<in>
+          {(s, Z). \<exists>X. (s, X) \<in> B \<and>
+            ((AP_Nonterm \<in> X \<and> AP_Nonterm \<in> Z) \<or> AP_Nonterm \<notin> X) \<and>
+            (\<forall>t. AP_Term t \<in> X \<longrightarrow> (t, Z) \<in> C)}"
+        by auto
+    qed
+  qed
+qed
 
+text \<open>
+  The originally stated left inverse below is false.  The counterexample
+  \<open>ap_bm_bmb_left_inverse_counterexample\<close> shows that \<open>UNIV\<close> is healthy
+  for \<open>ap_BMH_orig_subset\<close>, but the round trip through \<open>ap_bmb2bm\<close> and
+  \<open>ap_bm2bmb\<close> removes pairs whose result set contains \<open>AP_Nonterm\<close>.
+\<close>
+
+(*
 lemma ap_bm_bmb_left_inverse:
   assumes "ap_BMH_orig_subset B"
   shows "ap_bm2bmb (ap_bmb2bm B) = B"
-  sorry
+*)
+
+lemma ap_bm_bmb_left_inverse_counterexample:
+  "\<not> (\<forall>B :: 's ap_bmb. ap_BMH_orig_subset B \<longrightarrow> ap_bm2bmb (ap_bmb2bm B) = B)"
+proof
+  assume H: "\<forall>B :: 's ap_bmb. ap_BMH_orig_subset B \<longrightarrow> ap_bm2bmb (ap_bmb2bm B) = B"
+
+  let ?B = "(UNIV :: 's ap_bmb)"
+
+  have orig: "ap_BMH_orig_subset ?B"
+    unfolding ap_BMH_orig_subset_def ap_BMH_bot_def
+      ap_BMH0_def ap_BMH1_def ap_BMH2_def ap_BMH3_def
+    by auto
+
+  have eq: "ap_bm2bmb (ap_bmb2bm ?B) = ?B"
+  proof -
+    have "ap_BMH_orig_subset ?B \<longrightarrow> ap_bm2bmb (ap_bmb2bm ?B) = ?B"
+      using H by (rule spec)
+    with orig show ?thesis
+      by simp
+  qed
+
+  have "(undefined, {AP_Nonterm}) \<in> ?B"
+    by simp
+  moreover have "(undefined, {AP_Nonterm}) \<notin> ap_bm2bmb (ap_bmb2bm ?B)"
+    unfolding ap_bm2bmb_def
+    by simp
+  ultimately show False
+    using eq by simp
+qed
+
+definition ap_no_nonterm_outputs :: "'s ap_bmb \<Rightarrow> bool" where
+  "ap_no_nonterm_outputs B \<longleftrightarrow> (\<forall>s X. (s, X) \<in> B \<longrightarrow> AP_Nonterm \<notin> X)"
+
+lemma ap_bm_bmb_left_inverse:
+  assumes "ap_no_nonterm_outputs B"
+  shows "ap_bm2bmb (ap_bmb2bm B) = B"
+proof
+  show "ap_bm2bmb (ap_bmb2bm B) \<subseteq> B"
+  proof
+    fix p
+    assume "p \<in> ap_bm2bmb (ap_bmb2bm B)"
+    then obtain s X where
+      p_def: "p = (s, X)"
+      and mem: "(s, X) \<in> ap_bm2bmb (ap_bmb2bm B)"
+      by (cases p) blast
+    then have part_mem: "(s, ap_term_part X) \<in> ap_bmb2bm B"
+      and no_nt: "AP_Nonterm \<notin> X"
+      unfolding ap_bm2bmb_def by blast+
+    then have "(s, ap_term_image (ap_term_part X)) \<in> B"
+      unfolding ap_bmb2bm_def by blast
+    moreover have "ap_term_image (ap_term_part X) = X"
+      using no_nt by (rule ap_term_image_part_id)
+    ultimately have "(s, X) \<in> B"
+      by simp
+    with p_def show "p \<in> B"
+      by simp
+  qed
+next
+  show "B \<subseteq> ap_bm2bmb (ap_bmb2bm B)"
+  proof
+    fix p
+    assume "p \<in> B"
+    then obtain s X where
+      p_def: "p = (s, X)"
+      and mem: "(s, X) \<in> B"
+      by (cases p) blast
+    from assms mem have no_nt: "AP_Nonterm \<notin> X"
+      unfolding ap_no_nonterm_outputs_def by blast
+    have "ap_term_image (ap_term_part X) = X"
+      using no_nt by (rule ap_term_image_part_id)
+    then have "(s, ap_term_part X) \<in> ap_bmb2bm B"
+      using mem unfolding ap_bmb2bm_def by simp
+    with no_nt have "(s, X) \<in> ap_bm2bmb (ap_bmb2bm B)"
+      unfolding ap_bm2bmb_def by simp
+    with p_def show "p \<in> ap_bm2bmb (ap_bmb2bm B)"
+      by simp
+  qed
+qed
 
 lemma ap_bm_bmb_right_inverse:
   "ap_bmb2bm (ap_bm2bmb R) = R"
-  sorry
+  unfolding ap_bmb2bm_def ap_bm2bmb_def ap_term_image_def ap_term_part_def
+proof safe
+  fix s X
+  assume mem: "(s, {t. AP_Term t \<in> AP_Term ` X}) \<in> R"
+  have "{t. AP_Term t \<in> AP_Term ` X} = X"
+    by blast
+  with mem show "(s, X) \<in> R"
+    by simp
+next
+  fix s X
+  assume mem: "(s, X) \<in> R"
+  have "{t. AP_Term t \<in> AP_Term ` X} = X"
+    by blast
+  with mem show "(s, {t. AP_Term t \<in> AP_Term ` X}) \<in> R"
+    by simp
+qed
 
-theorem ap_bm_bmb_iso:
-  assumes "ap_BMH_orig_subset B"
-  shows "ap_bm2bmb (ap_bmb2bm B) = B \<and> ap_bmb2bm (ap_bm2bmb R) = R"
-  sorry
 
-section \<open>Angelic Designs\<close>
+  section \<open>Angelic Designs\<close>
 
 record 's ap_ades_alpha =
   ap_ok :: bool
@@ -247,15 +1160,100 @@ definition ap_pbmh2d :: "'s ap_ades_pred \<Rightarrow> 's ap_ades_pred" where
   "ap_pbmh2d P = ap_A P"
 
 lemma ap_PBMH_idem: "ap_PBMH (ap_PBMH P) = ap_PBMH P"
-  sorry
+  unfolding ap_PBMH_def
+proof (rule ext)
+  fix st
+  show "(\<exists>A. A \<subseteq> ap_ac' st \<and>
+      (\<exists>Aa. Aa \<subseteq> ap_ac' (st\<lparr>ap_ac' := A\<rparr>) \<and>
+        P (st\<lparr>ap_ac' := A, ap_ac' := Aa\<rparr>))) =
+    (\<exists>A. A \<subseteq> ap_ac' st \<and> P (st\<lparr>ap_ac' := A\<rparr>))"
+  proof (rule iffI)
+    assume "\<exists>A. A \<subseteq> ap_ac' st \<and>
+      (\<exists>Aa. Aa \<subseteq> ap_ac' (st\<lparr>ap_ac' := A\<rparr>) \<and>
+        P (st\<lparr>ap_ac' := A, ap_ac' := Aa\<rparr>))"
+    then obtain A Aa where
+      a_subset: "A \<subseteq> ap_ac' st"
+      and aa_subset: "Aa \<subseteq> ap_ac' (st\<lparr>ap_ac' := A\<rparr>)"
+      and p_mem: "P (st\<lparr>ap_ac' := A, ap_ac' := Aa\<rparr>)"
+      by blast
+    have "Aa \<subseteq> ap_ac' st"
+      using a_subset aa_subset by simp
+    moreover from p_mem have "P (st\<lparr>ap_ac' := Aa\<rparr>)"
+      by simp
+    ultimately show "\<exists>A. A \<subseteq> ap_ac' st \<and> P (st\<lparr>ap_ac' := A\<rparr>)"
+      by blast
+  next
+    assume "\<exists>A. A \<subseteq> ap_ac' st \<and> P (st\<lparr>ap_ac' := A\<rparr>)"
+    then obtain A where
+      a_subset: "A \<subseteq> ap_ac' st"
+      and p_mem: "P (st\<lparr>ap_ac' := A\<rparr>)"
+      by blast
+    have "A \<subseteq> ap_ac' (st\<lparr>ap_ac' := A\<rparr>)"
+      by simp
+    moreover from p_mem have "P (st\<lparr>ap_ac' := A, ap_ac' := A\<rparr>)"
+      by simp
+    ultimately show "\<exists>A. A \<subseteq> ap_ac' st \<and>
+      (\<exists>Aa. Aa \<subseteq> ap_ac' (st\<lparr>ap_ac' := A\<rparr>) \<and>
+        P (st\<lparr>ap_ac' := A, ap_ac' := Aa\<rparr>))"
+      using a_subset
+      by blast
+  qed
+qed
 
 lemma ap_PBMH_mono:
   assumes "P \<le> Q"
   shows "ap_PBMH P \<le> ap_PBMH Q"
-  sorry
+  unfolding ap_PBMH_def
+proof
+  fix st
+  assume "(\<lambda>st. \<exists>A\<subseteq>ap_ac' st. P (st\<lparr>ap_ac' := A\<rparr>)) st"
+  then obtain A where
+    subset: "A \<subseteq> ap_ac' st"
+    and p_mem: "P (st\<lparr>ap_ac' := A\<rparr>)"
+    by blast
+  from assms p_mem have "Q (st\<lparr>ap_ac' := A\<rparr>)"
+    by (simp add: le_fun_def)
+  with subset show "(\<lambda>st. \<exists>A\<subseteq>ap_ac' st. Q (st\<lparr>ap_ac' := A\<rparr>)) st"
+    by blast
+qed
 
 lemma ap_A0_idem: "ap_A0 (ap_A0 P) = ap_A0 P"
-  sorry
+proof (rule ext)
+  fix st :: "'a ap_ades_alpha"
+  let ?stF = "st\<lparr>ap_ok' := False\<rparr>"
+  have collapse: "ap_A0 P ?stF = P ?stF"
+    unfolding ap_A0_def by simp
+  show "ap_A0 (ap_A0 P) st = ap_A0 P st"
+  proof
+    assume "ap_A0 (ap_A0 P) st"
+    thus "ap_A0 P st"
+      unfolding ap_A0_def by blast
+  next
+    assume H: "ap_A0 P st"
+    from H have imp_P: "\<lbrakk>ap_ok st; \<not> P ?stF; ap_ok' st\<rbrakk> \<Longrightarrow> ap_ac' st \<noteq> {}"
+      unfolding ap_A0_def by blast
+    show "ap_A0 (ap_A0 P) st"
+      unfolding ap_A0_def
+    proof (intro conjI impI)
+      show "P st"
+        by (meson H ap_A0_def)
+    next
+      assume inner: "ap_ok st \<and> \<not> P (st\<lparr>ap_ok' := False\<rparr>)"
+      assume ok': "ap_ok' st"
+      from inner have ok: "ap_ok st" and notA0: "\<not> ap_A0 P ?stF"
+        using collapse by auto
+      from notA0 collapse have notP: "\<not> P ?stF" by simp
+      from imp_P ok notP ok' show "ap_ac' st \<noteq> {}" by blast
+    next
+      show "ap_ok st \<and>
+    \<not> (P (st\<lparr>ap_ok' := False\<rparr>) \<and>
+        (ap_ok (st\<lparr>ap_ok' := False\<rparr>) \<and> \<not> P (st\<lparr>ap_ok' := False, ap_ok' := False\<rparr>) \<longrightarrow>
+         ap_ok' (st\<lparr>ap_ok' := False\<rparr>) \<longrightarrow> \<not> ap_ac' (st\<lparr>ap_ok' := False\<rparr>) = {})) \<Longrightarrow>
+    ap_ok' st \<Longrightarrow> \<not> ap_ac' st = {}"
+        by (simp add: imp_P)
+    qed
+  qed
+qed
 
 lemma ap_A1_idem: "ap_A1 (ap_A1 P) = ap_A1 P"
   sorry
@@ -266,7 +1264,15 @@ lemma ap_A_idem: "ap_A (ap_A P) = ap_A P"
 lemma ap_A2_expand:
   "ap_A2 P = (\<lambda>st.
     P (st\<lparr>ap_ac' := {}\<rparr>) \<or> (\<exists>y. y \<in> ap_ac' st \<and> P (st\<lparr>ap_ac' := {y}\<rparr>)))"
-  sorry
+  unfolding ap_A2_def
+proof (rule ext)
+  fix st
+  show "(P (st\<lparr>ap_ac' := {}\<rparr>) \<or>
+      (\<exists>y\<in>ap_ac' st. P (st\<lparr>ap_ac' := {y}\<rparr>))) =
+    (P (st\<lparr>ap_ac' := {}\<rparr>) \<or>
+      (\<exists>y. y \<in> ap_ac' st \<and> P (st\<lparr>ap_ac' := {y}\<rparr>)))"
+    by blast
+qed
 
 lemma ap_A0_design_strengthens_post:
   "ap_A0 (P \<turnstile>\<^sub>A Q) = (P \<turnstile>\<^sub>A (\<lambda>st. Q st \<and> ap_ac' st \<noteq> {}))"
@@ -279,7 +1285,8 @@ lemma ap_A_design_normal_form:
   "ap_A P =
     ap_A0 ((\<lambda>st. \<not> ap_PBMH (\<lambda>st'. P (st'\<lparr>ap_ok' := False\<rparr>)) st) \<turnstile>\<^sub>A
       ap_PBMH (\<lambda>st. P (st\<lparr>ap_ok' := True\<rparr>)))"
-  sorry
+  unfolding ap_A_def ap_A1_def
+  by simp
 
 lemma ap_A_seq_closed:
   assumes "ap_A P = P" "ap_A Q = Q"

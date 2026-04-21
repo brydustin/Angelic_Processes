@@ -7,15 +7,15 @@ The current entry point is:
 
 - Theory: `Angelic_Processes.thy`
 - Session: `Angelic_Processes`
-- Isabelle: `/home/dusty/Desktop/Isabelle/project/Isabelle2025-2/bin/isabelle`
+- Isabelle: `/home/dusty/Desktop/Isabelle/Angelic_UTP/Isabelle2025-2/bin/isabelle`
 
 ## Isabelle Commands
 
 The normal project build command should eventually be:
 
 ```bash
-/home/dusty/Desktop/Isabelle/project/Isabelle2025-2/bin/isabelle build \
-  -d /home/dusty/Desktop/Isabelle/project \
+/home/dusty/Desktop/Isabelle/Angelic_UTP/Isabelle2025-2/bin/isabelle build \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP \
   -l Angelic_Processes
 ```
 
@@ -24,36 +24,36 @@ the local `Z_Toolkit-main` session because both define a session named `Z_Toolki
 Use an isolated Isabelle identifier for this project:
 
 ```bash
-cd /home/dusty/Desktop/Isabelle/project
+cd /home/dusty/Desktop/Isabelle/Angelic_UTP
 
 ISABELLE_IDENTIFIER=IsabelleAPRoadmap \
-/home/dusty/Desktop/Isabelle/project/Isabelle2025-2/bin/isabelle build \
-  -d /home/dusty/Desktop/Isabelle/project \
-  -d /home/dusty/Desktop/Isabelle/project/Abstract_Prog_Syntax-main \
-  -d /home/dusty/Desktop/Isabelle/project/Z_Toolkit-main \
-  -d /home/dusty/Desktop/Isabelle/project/Shallow-Expressions-main \
-  -d /home/dusty/Desktop/Isabelle/project/Shallow-Expressions-main/Z \
-  -d /home/dusty/Desktop/Isabelle/project/Optics-main \
-  -d /home/dusty/Desktop/Isabelle/project/UTP-main \
+/home/dusty/Desktop/Isabelle/Angelic_UTP/Isabelle2025-2/bin/isabelle build \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Abstract_Prog_Syntax-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Z_Toolkit-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main/Z \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Optics-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/UTP-main \
   Angelic_Processes
 ```
 
 Open the theory in jEdit with:
 
 ```bash
-cd /home/dusty/Desktop/Isabelle/project
+cd /home/dusty/Desktop/Isabelle/Angelic_UTP
 
 ISABELLE_IDENTIFIER=IsabelleAPRoadmap \
-/home/dusty/Desktop/Isabelle/project/Isabelle2025-2/bin/isabelle jedit \
-  -d /home/dusty/Desktop/Isabelle/project \
-  -d /home/dusty/Desktop/Isabelle/project/Abstract_Prog_Syntax-main \
-  -d /home/dusty/Desktop/Isabelle/project/Z_Toolkit-main \
-  -d /home/dusty/Desktop/Isabelle/project/Shallow-Expressions-main \
-  -d /home/dusty/Desktop/Isabelle/project/Shallow-Expressions-main/Z \
-  -d /home/dusty/Desktop/Isabelle/project/Optics-main \
-  -d /home/dusty/Desktop/Isabelle/project/UTP-main \
+/home/dusty/Desktop/Isabelle/Angelic_UTP/Isabelle2025-2/bin/isabelle jedit \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Abstract_Prog_Syntax-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Z_Toolkit-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main/Z \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Optics-main \
+  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/UTP-main \
   -l Angelic_Processes \
-  /home/dusty/Desktop/Isabelle/project/Angelic_Processes.thy
+  /home/dusty/Desktop/Isabelle/Angelic_UTP/Angelic_Processes.thy
 ```
 
 ## Roadmap Discipline

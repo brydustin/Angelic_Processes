@@ -1,0 +1,4264 @@
+\documentclass[11pt]{article}
+% Compile with LuaLaTeX on Overleaf
+\usepackage[margin=1in]{geometry}
+\usepackage{fontspec}
+\setmainfont{FreeSerif}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+\titleformat{\paragraph}[runin]{\bfseries}{}{0pt}{}[.]
+\title{Angelic processes for CSP via the UTP}
+\author{Pedro Ribeiro \and Ana Cavalcanti}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{center}
+\small Department of Computer Science, University of York, UK\\
+\small DOI: \url{https://doi.org/10.1016/j.tcs.2018.10.008}
+\end{center}
+
+\begin{quote}\small
+\textbf{Article history:} Received 14 November 2017; received in revised form 27 September 2018; accepted 8 October 2018; available online 15 October 2018; communicated by J.~Davies.
+
+\textbf{Keywords:} Semantics; Formal specification; Process algebras; CSP; UTP.
+\end{quote}
+
+\begin{abstract}
+Demonic and angelic nondeterminism play fundamental roles as abstraction mechanisms for formal modelling. In contrast with its demonic counterpart, in an angelic choice failure is avoided whenever possible. Although it has been extensively studied in refinement calculi, in the context of process algebras, and of the Communicating Sequential Processes (CSP) algebra for refinement, in particular, it has been elusive. We show here that a semantics for an extended version of CSP that includes both demonic and angelic choice can be provided using Hoare and He’s Unifying Theories of Programming (UTP). Since CSP is given semantics in the UTP via reactive designs (pre and postcondition pairs) we have developed a theory of angelic designs and a conservative extension of the CSP theory using reactive angelic designs. To characterise angelic nondeterminism appropriately in an algebra of processes, however, a notion of divergence that can undo the history of events needs to be considered. Taking this view, we present a model for CSP where angelic choice completely avoids divergence just like in the refinement calculi for sequential programs.
+\end{abstract}
+
+\tableofcontents
+\bigskip
+\section{Introduction}
+An essential abstraction mechanism that is pervasive across modelling approaches is nondeterministic choice. It can be used to specify purely nondeterministic behaviour, in which no particular bias in choices is guaranteed, but also to describe concisely a form of choice in which, if there are options that lead to success, they are guaranteed to be selected. The former is normally named demonic, while the latter is named angelic. Operationally, both choices embody some notion of failure, and success.
+
+\begin{quote}\small\raggedright
+Demonic choice has traditionally been used for the underspecification of behaviour, and plays an essential role in the
+\par
+contractual approach between users and developers. In a refinement, the behaviour can be more deterministic than that
+\par
+specified, while adhering to the possible externally observable behaviours. In other words, the user is unable to force any
+\par
+particular choice and must accept any outcome, including failure, if this is a possibility. This corresponds to the semantics
+\par
+of nondeterminism in Dijkstra [1]’s guarded commands, and internal choice in CSP [2], for example.
+\end{quote}
+
+On the other hand, angelic choice is driven by success. Given a set of choices, as long as there is at least one that leads to success, then the program is guaranteed to achieve a satisfying outcome. Metaphorically, the choice is said to be made by an angel, while the arbitrary form of choice is made by a demon. Operationally, angelic nondeterminism can be interpreted as a backtracking mechanism. This is similar to the underlying concept involved in searching for solutions in a given space.
+
+Angelic nondeterminism has traditionally been studied in the refinement calculi [3–5], where angelic choice is defined as the least upper bound of the lattice of monotonic predicate transformers. Its dual is demonic choice, which is defined as the greatest lower bound of the lattice. Morgan and Gardiner [6] have used the least upper bound to define logical variables, which, for example, enable the postcondition of a specification statement to refer to the initial value of a program variable. Logical variables are also central to their calculational data-refinement approach.
+
+In the context of reactive and concurrent systems, however, the notions of angelic nondeterminism considered so far have been notably different. Tyrrell et al. [7] have proposed an axiomatized algebra of processes resembling CSP. Their external choice is referred to as angelic choice, but, in their model deadlock is not distinguishable from divergence. Therefore, that model and its associated notion of refinement are different from the standard (failures-divergences) semantics of CSP [8].
+
+\begin{quote}\small\raggedright
+More recently, Roscoe [2] has proposed an angelic choice operator P ✢ Q defined using an operational combinator
+\par
+semantics for CSP. It is an alternative to the external choice operator that behaves as follows: as long as the environment
+\par
+chooses events offered by both P and Q , then the choice between P and Q is unresolved. The possibility of divergence or
+\par
+otherwise has no effect on the choice.
+\par
+A suitable notion of angelic nondeterminism for CSP, and indeed any process algebra, needs to avoid divergence. For
+\par
+example, the angelic choice a →Chaos ⊔b →Skip, between a process that performs an event a followed by divergence,1
+\end{quote}
+
+and a process that performs an event b followed by termination, should always be resolved in favour of b →Skip. This is required to characterise angelic and demonic nondeterminism in reactive system models for both data and behavioural refinement. We show here that the UTP of Hoare and He [10] is a suitable framework to characterise angelic nondeterminism in CSP.
+
+\begin{quote}\small\raggedright
+Since in the UTP CSP processes are defined by reactive designs, that is, via pre and postcondition pairs, we develop first
+\par
+a UTP theory of angelic designs based on a relational encoding of upward-closed binary multirelations [11,12]. Using this
+\par
+theory, we develop a conservative extension of CSP with angelic nondeterminism. In this theory, the choice a →Skip ⊔b →
+\par
+Chaos is resolved in favour of a →Skip provided a and b are the same event. Otherwise, the behaviour can be described by
+\par
+a →Skip ⊔b →Choice, where Choice is the most nondeterministic process that does not diverge. This is a consequence
+\par
+of the fact that, in a theory of reactive processes, the history of events observed cannot be undone. So the angel cannot
+\par
+change history, despite its capability to avoid divergence.
+\par
+Therefore, we finally propose a new theory of angelic processes where we give up the healthiness conditions of CSP that
+\par
+ensure that the history of events must be preserved. In this theory angelic choice completely avoids potentially divergent
+\par
+processes as required, so that a →Skip ⊔b →Chaos = a →Skip.
+\end{quote}
+
+We present the definition of basic CSP operators in this theory. Moreover, we study the relationship between our new theory and reactive angelic designs to ensure that the semantics of CSP operators is preserved. In particular, CSP programs that do not use angelic nondeterminism have the usual semantics.
+
+We show that all theories discussed in this paper can be related using Galois connections. The remainder of this paper is structured as follows. In Section 2 we discuss the applications of angelic nondeterminism and CSP. In Section 3 we introduce the UTP and its theories of designs and reactive designs. In Section 4 we present our framework for angelic nondeterminism. Section 5 discusses the theory of angelic designs. The theory of reactive angelic designs is introduced in Section 6 along with the characterisation of new operators. Section 7 contains our final theory for a version of CSP that can describe truly angelic processes. Finally, we summarize our results in Section 8, where we also discuss related and future work.
+
+\section{Angelic nondeterminism and CSP}
+In this section we first discuss the notion of angelic determinism and its applications in Section 2.1, followed by the standard theory of CSP in Section 2.2.
+
+\subsection{Angelic nondeterminism and its applications}
+\begin{quote}\small\raggedright
+The earliest known use of angelic nondeterminism can be found in automata theory [13] and Turing machines [14],
+\par
+for example, to characterise context-free languages [15], and the class of NP-problems [14], whose solutions can be found
+\par
+efficiently given an angelic nondeterministic machine. Since then, angelic nondeterminism has been used as a specification
+\par
+and programming construct in several applications, including parsing [16], modelling of game-like scenarios [4] and user
+\par
+interactions, theorem proving tactics [17,18], constraint programming [19] and logic programming [20]. These are applica-
+\par
+tions where finding a solution often involves a combination of search and backtracking, and thus can be specified rather
+\par
+abstractly using angelic choices.
+\end{quote}
+
+Floyd [21] envisioned angelic choice as a mechanism for the abstract specification of algorithms. In his flowcharts, Floyd introduced explicit nondeterministic choice points, and appropriate notions of success and failure, to avoid implementation details of particular execution strategies. When Dijkstra [1,22] introduced the language of guarded commands, however, the nondeterministic choice considered was no longer angelic. The semantic model is that of conjunctive, but not disjunctive, weakest preconditions that excludes angelic (as well as infeasible programs) by observing the so called “Law of the Excluded Miracle”.
+
+\begin{quote}\small\raggedright
+1 Here we follow the notation of Circus [9], and use Chaos to represent divergence, which corresponds to div in Roscoe [2]’s presentation, and similarly
+\par
+we use Choice to represent the most nondeterministic non-divergent process, which corresponds to Roscoe [2]’s Chaos.
+\par
+When Back [23], Morris [5] and Morgan [3] introduced the refinement calculus, miracles were allowed back into their
+\par
+models to yield complete lattices. Back and Wright [4] extensively studied sublattices, where choice can be either angelic
+\par
+or demonic. The most important model in all these works is that of monotonic predicate transformers, where angelic and
+\par
+demonic choice are modelled as the least upper bound and the greatest lower bound of the lattice, both extensively used
+\par
+in modelling.
+\end{quote}
+
+Angelic choice plays a significant role amongst data refinement techniques, such as that of Gardiner and Morgan [24], where the least upper bound is used to formalize logical variables. This allowed for a simpler stepwise approach to data refinement via calculation.
+
+Ward and Hayes [25], in their work on applications of angelic nondeterminism, clearly emphasize that unlike Floyd’s choice points, the angelic choice of the refinement calculus can “look ahead” and guide choices to avoid divergence, if at all possible. This was no longer restricted to choice points, but applicable to any angelic construct, including a new form of angelic assignment of values to program variables, exploited in the refinement of programs from high-level specifications.
+
+\begin{quote}\small\raggedright
+A practical application of angelic choice can be found, for example, in the approach of Cavalcanti et al. [26], where control
+\par
+systems specified using Simulink are modelled using Circus [9], a combination of the Z [27] specification language and CSP.
+\par
+This work demonstrates that angelic nondeterminism is useful to reason about simulations of reactive systems. Simulations
+\par
+have an idealised view of computation, which can take place infinitely fast. To relate the view of a system defined by the
+\par
+results of the idealised simulation to that of a program, we can interpret the computations in simulations as angelic choices.
+\par
+In the context of theories of total correctness, computations can be specified through relations between initial and final
+\par
+states, such as the view adopted in Z and VDM [28]. However, as Back and Wright [4] have noted, relations can only
+\par
+capture one type of nondeterminism, either angelic or demonic, but not both. Furthermore, Cavalcanti and Woodcock [29]
+\par
+have established that, in general, UTP relations are isomorphic to conjunctive predicate transformers. To define a theory
+\par
+of relations with angelic nondeterminism they considered a predicative encoding of Rewitzky [11]’s upward-closed binary
+\par
+multirelations, which is at the core of our work on catering for angelic and demonic nondeterminism in CSP.
+\end{quote}
+
+\subsection{CSP}
+The central notion of CSP is that of communicating processes. These include basic processes, such as Skip, which termi- nates successfully, Stop, which behaves as deadlock and hence refuses to do anything, and div, which behaves unpredictably. In CSP communication is modelled by defining events, which the system can perform only with the cooperation of its en- vironment. Once agreement is reached, events happen instantaneously and atomically. The prefixing a →P first offers the environment the possibility to perform event a, while allowing any other events to be refused, after which it behaves like P. An external choice P 2 Q offers the environment the possibility to behave as P or Q , with the choice being resolved either through a communication or via termination. On the other hand, an internal choice P ⊓Q , which is demonic, is under the control of the system, and so the environment cannot possibly force the system into behaving as either P or Q . Finally two processes P and Q can be sequentially composed P ; Q , so that the termination of P leads to the behaviour of Q . The treatment of other important CSP operators like parallel composition and hiding can be found in [2].
+
+\begin{quote}\small\raggedright
+The simplest semantic model for CSP considers the observable sequences of events that a process may produce as a trace,
+\par
+a sequence of type Σ (Trace : seqΣ, following the Z notation), where Σ is the set of all possible events. Refinement in this
+\par
+model allows reasoning about safety, that is, a valid refinement can never perform traces not in the original specification,
+\par
+but may refuse to perform any event at all, like Stop. To capture liveness the failures model records the events refused
+\par
+after having performed a trace. In this case we record for each process a pair of type Trace × P Failure, where Failure :
+\par
+(Trace × PΣ) is a pair, whose first component is a trace and whose second component is a set of events, containing those
+\par
+events refused after the trace. A refinement cannot refuse more events, and so in this model Stop is not a valid refinement
+\par
+of every process, unlike in the traces model. Finally, to capture divergent behaviour, such as that exhibited by div, the traces
+\par
+leading to a divergence are recorded, with the view that two processes that can diverge immediately are equivalent and
+\par
+useless, and once divergent can perform any trace and refuse any event (also known as divergence strictness). In this case
+\par
+we record for each process a pair of type P Failure × Divergences, where Divergences is of type P (seqΣ).
+\par
+The results by Back and Wright [4], Cavalcanti and Woodcock [29] indicate that both angelic and demonic nondetermin-
+\par
+ism cannot be characterised in the traditional failures-divergences model. To illustrate this result, we construct a simple
+\par
+relational model isomorphic to failures-divergences (without considering the treatment of termination) by defining the fol-
+\par
+lowing pair of mapping functions, f d2r that takes a pair of failures-divergences (F, D) and yields a relation on a type
+\par
+State = Failure ∪⊥, with ⊥used to record divergent behaviour, and r2 f d that maps in the opposite direction.
+\end{quote}
+
+\noindent\textbf{Definition 1.}
+
+
+f d2r : (P Failure × Divergences) →(State ↔State)
+
+\begin{quote}\small\raggedright
+f d2r(F, D) =
+\par
+Σ \{(s, s′) | \{s, s′\} ⊆F ∧∃a : Σ • trace(s′) = trace(s) ⌢⟨a⟩\} ∪
+\par
+\{(s, s′) | trace(s) ∈D ∧(s′ = ⊥∨∃a : Σ • trace(s′) = trace(s) ⌢⟨a⟩)\} ∪\{(⊥,⊥)\}
+\end{quote}
+
+The definition of f d2r is the union of three sets. The first set captures the valid traces of a process by relating every initial state s to a final state s′, such that s and s′ are in the set of failures F and the trace(s) of s is a proper prefix of trace(s′)
+
+that is one event shorter, where trace is a function that yields the traces in a state s. The second set considers divergences by relating every state s whose trace trace(s) leads to a divergence in D with ⊥, to record that there is a divergence, and with every failure whose trace is one event shorter. Finally, for consistency we also relate ⊥with ⊥.
+
+Similarly, the function r2 f d can be defined by considering the pair whose components are given by r2 f , which yields a set of failures, and r2d, which yields a set of diverging traces.
+
+\noindent\textbf{Definition 2.}
+
+
+\begin{quote}\small\raggedright
+r2 f (R) = \{s′ | ∃s • (s, s′) ∈R ∧s ̸= ⊥∧s′ ̸= ⊥\}
+\par
+r2d(R) = \{t | ∃s • (s,⊥) ∈R ∧t = trace(s) ∧s ̸= ⊥\}
+\par
+r2 f d(R) = (r2 f (R),r2d(R))
+\end{quote}
+
+The function r2 f is defined by considering every proper failure, that is, different form ⊥, s′ that is related to a proper failure. The definition of r2d considers the traces t of every state s related to ⊥in R. Under the healthiness conditions of the model of failures-divergences, we can establish the following Theorem 1, proof of which is available in [30]. Prefix-closure requires that for every valid trace its prefix can also be observed. Failures-strictness requires that upon divergence, every event can be refused, and divergence-strictness requires that every extension of a divergent trace is also divergent.
+
+\noindent\textbf{Theorem 1.} Provided F and R are prefix-closed, failures-strict, and D and R are divergence-strict, then r2 f d ◦f d2r(F, D) = (F, D) and f d2r ◦r2 f d(R) = R.
+
+
+Furthermore, we can also show that under the same assumptions the mappings are closed under the healthiness conditions. Therefore, we can conclude the model is isomorphic to a relational model, which we know cannot model both demonic and angelic nondeterminism. To model both forms of nondeterminism, we need a complete lattice. We use the framework of the UTP, as described in the next few sections.
+
+\section{Unifying theories of programming}
+The UTP of Hoare and He [10] is an alphabetized, predicative theory of relations suitable for characterising different programming paradigms. It promotes unification of semantic models, while enabling different aspects of paradigms (data, reaction, time, and so on) to be considered in isolation. Several theories have been proposed that consider concurrency, logic and higher-order programming, object-orientation, pointers, probability and others. A survey is available in [31].
+
+A UTP theory is characterised by three components: an alphabet, a set of healthiness conditions, and a set of operators. The UTP is based on the principle of observation, and so the discourse is defined by an alphabet whose variables determine the observable parameters of a system. These can be either program variables, or alternatively, auxiliary variables that capture information like termination and execution time. A theory is formed by predicates described using its operators and whose free variables are in its alphabet. Healthiness conditions define the valid predicates of the theory.
+
+In what follows we introduce the UTP theoretical framework for CSP. Section 3.1 discusses the core UTP theory of relations, Section 3.2, the theory of designs, Section 3.3, theory of reactive processes, and, finally, Section 3.4 discusses the theory of CSP (without angelic nondeterminism).
+
+\subsection{Relations}
+In the UTP relations are alphabetised, that is, a set of named and typed variables given by α(P), is used to refer to the components of the source S and target T of a relation P : S ↔T . For example, in a theory of discrete time we may have variables t and t′ of type N to record the time, with t used to record the initial value, and t′ to record the final or after value. A program, which is a relation, that increments the initial value of t can be specified by the predicate t′ = t + 1.
+
+\begin{quote}\small\raggedright
+The alphabet α(P) of a relation P is split into two disjoint subsets: inα(P), which contains undashed variables recording
+\par
+initial observations of P, and outα(P), containing dashed counterparts for after or final observations. When the input and
+\par
+output alphabets of a relation are exactly the same, except for the fact that variables are undashed and dashed in either set,
+\par
+it is homogeneous.
+\end{quote}
+
+\noindent\textbf{Definition 3.} A relation P is homogeneous if, and only if, (inα(P))′ = outα(P).
+
+
+Here (inα(P))′ is the set of variables obtained by dashing every variable in the set inα(P).
+
+\subsubsection{Healthiness conditions}
+The healthiness conditions of a theory are usually specified as idempotent and monotonic functions from predicates to predicates. The healthy (valid) predicates are the fixed points of these functions.
+
+\noindent\textbf{Example 1.} For example, considering our previous example of a theory of discrete-time using a variable t to record time, a plausible expectation of such a model is that a system must guarantee that time is increasingly monotonic. This can be described by the following conjunctive healthiness condition HC. HC(P) ≜= P ∧t ≤t′. It requires that the initial value of t is less than or equal to the final or after value t′. 2
+
+
+Conjunctive healthiness conditions are known to be idempotent and monotonic [32].
+
+\subsubsection{Refinement}
+The theory of relations forms a complete lattice, with the order given by reverse universal implication, corresponding to the notion of refinement defined below.
+
+\noindent\textbf{Definition 4 (Refinement).} P ⊑Q ≜= [Q ⇒P].
+
+
+We use square brackets in [P] to stand for universal quantification over all the variables in the alphabet of P. The top of the lattice is false and the bottom is true.
+
+Refinement can be understood as capturing the notion of correctness in the sense that, if a relation Q refines P, then all possible behaviours exhibited by Q are permitted by P. This notion is paramount for the UTP framework and it is the same across all theories. The relation true imposes no restriction and permits the observation of any value for all variables in the alphabet, while false permits none.
+
+\subsubsection{Operators}
+A UTP theory comprises a number of operators that allow more complex behaviours to be specified. In the theory of relations there are core operators that correspond to typical constructs found in programming languages, such as conditional, sequential composition and recursion. We present their definition next.
+
+Conditional The following operator is similar to a conditional statement in an imperative language.
+
+\noindent\textbf{Definition 5 (Conditional).} P ◁Q ▷R ≜= (Q ∧P) ∨(¬ Q ∧R).
+
+
+If the relation Q holds, then the program behaves as P, otherwise it behaves as R. If Q has no free dashed variables, then Q is a condition, and the conditional is a standard if-then-else.
+
+Sequential composition In theories whose relations are homogeneous, sequential composition is defined as relational com- position. The definition is reproduced below.
+
+\noindent\textbf{Definition 6 (Sequential composition).} P ; Q ≜= ∃v0 • P[v0/v′] ∧Q [v0/v].
+
+
+The intuition is that the sequential composition of two relations P and Q involves some intermediate, unobservable state, characterised by values for the vector of (input) alphabet variables represented by v0. This vector is substituted in place for the final values of P, as represented by v′, as well as substituted for the initial values of Q , as represented by v. It is finally hidden by the existential quantifier.
+
+Recursion Recursion is defined in the UTP as the weakest fixed point. Since we have a complete lattice, it is possible to find a complete lattice of fixed points as established by Tarski [10,33]. In the following definition, F is a monotonic function and d is the greatest lower bound.
+
+\noindent\textbf{Definition 7 (Recursion).} μX • F(X) ≜= d\{X | [F(X) ⊑X]\}.
+
+
+\begin{quote}\small\raggedright
+A nonterminating recursion, such as (μY • Y), is equated with the bottom of the lattice, true [10]. Intuitively, this
+\par
+means that it does not terminate, but if we sequentially compose this recursion with another program, for example
+\par
+(μY • Y); x := 2, then it becomes possible to recover from the nontermination, as the calculation yields x := 2. To ap-
+\par
+propriately capture total correctness, this has motivated Hoare and He [10] to propose the theory of designs that we discuss
+\par
+next.
+\end{quote}
+
+\subsection{Designs}
+In the UTP, total correctness is characterised through the theory of designs [10,34], whose alphabet includes besides the program variables and their dashed counterparts, two auxiliary Boolean variables: ok and ok′. They track whether a program has been started, in which case ok is true, and whether a program has successfully terminated, in which case ok′ is true.
+
+\subsubsection{Healthiness conditions}
+Valid predicates of the theory of designs must obey two principles: that no guarantees can be made by a program before it has started, and, that no program may require nontermination. These are characterised by the healthiness conditions H1 and H2, respectively, which we reproduce below.
+
+\noindent\textbf{Definition 8 (Healthiness conditions of designs).}
+
+
+\begin{quote}\small\raggedright
+H1(P) ≜= ok ⇒P
+\par
+H2(P) ≜= P ; ((ok ⇒ok′) ∧v′ = v)
+\end{quote}
+
+The definition of H1 states that any guarantees made by P can only be established once it has started. The healthiness condition H2, which is defined using sequential composition, allows the value of ok to increase monotonically, while every other variable v is unchanged. In other words, a design that is unstable (¬ ok), may or may not terminate, but cannot enforce non-termination.
+
+A fixed point of both H1 and H2 satisfies the equality below [10].
+
+\begin{quote}\small\raggedright
+Lemma 1 (Design). H1 ◦H2(P) = (ok ∧¬ P[false/ok′]) ⇒(P[true/ok′] ∧ok′).
+\par
+Here the design is split into two parts: a precondition and a postcondition. It is defined using the notation of Hoare and He
+\par
+[10] as shown in the following definition, where ⊢binds weaker than the logic operators. We observe that a precondition
+\par
+can refer to the after or final value of an observation variable, which, as we discuss in the next paragraph, is required to
+\par
+accommodate the CSP theory.
+\end{quote}
+
+\noindent\textbf{Definition 9 (Design).} (P ⊢Q ) ≜= (ok ∧P) ⇒(ok′ ∧Q ).
+
+
+\begin{quote}\small\raggedright
+A design can also be written using the following notation, where we use the shorthand Pa = P[a/ok′], where a can be
+\par
+either t = true or f = false, as introduced by Woodcock and Cavalcanti [34], which emphasises that we can assume, without
+\par
+loss of generality, that ok′ is not free in pre and postconditions. Furthermore, it is usually assumed that ok is also not free
+\par
+in either P or Q .
+\end{quote}
+
+Lemma 2 (Design). A predicate P is a design if, and only if, it can be written as: (¬ P f ⊢Pt).
+
+We observe that the functions H1 and H2 are idempotent and monotonic with respect to refinement [10]. Furthermore, none of the proofs establishing these results rely on the property of homogeneity. Therefore, it is possible to define a non-homogeneous theory of designs.
+
+In the theory of designs, an additional healthiness condition H3 requires IID, the identity of the theory, to be a right-unit for sequential composition.
+
+\noindent\textbf{Definition 10.} H3(P) ≜= P ; IID where IID ≜= (true ⊢v′ = v).
+
+
+H3 requires the precondition not to have any dashed variables. In order to understand the intuition behind it we consider an example of a design that is not H3-healthy.
+
+\noindent\textbf{Example 2.}
+
+
+\begin{quote}\small\raggedright
+(x′ ̸= 2 ⊢true)
+\par
+\{Definition of designs\}
+\par
+= (ok ∧x′ ̸= 2) ⇒ok′
+\par
+\{Propositional calculus\}
+\par
+= ok ⇒(x′ = 2 ∨ok′)
+\end{quote}
+
+In this case we have a program that, upon having started, can either terminate and any final values are permitted, or can assign the value 2 to x and termination is then not required. In a theory of total correctness for sequential programs, this is a behaviour that would not normally be expected. 2 In the context of CSP, non-H3 designs are important, since they enable the specification of CSP processes such as a →Chaos. The healthiness condition H3 can also be interpreted as guaranteeing that if a program may not terminate, then it has arbitrary behaviour. Thus a predicate that is H3-healthy is also necessarily H2-healthy [12].
+
+\begin{quote}\small\raggedright
+The theory of designs is a complete lattice [10] with the everywhere miraculous program as the top ⊤D ≜= (true ⊢false)
+\par
+and abort as the bottom ⊥D ≜= (false ⊢true). Miracle cannot be started while abort has arbitrary behaviour. Both programs
+\par
+play an important role in refinement calculi.
+\end{quote}
+
+\subsection{Reactive processes}
+CSP can be characterised in the UTP through the theory of reactive processes. In addition to ok and ok′, this theory includes the variables wait, tr, ref and their dashed counterparts, that record information about termination, possible interactions with the environment, and possibility of refusing interaction. Similarly, wait′ records this information for the current process. The variable ok indicates whether the previous process is in a stable state, while ok′ records this information for the current process. If a process is not in a stable state, then it is said to have diverged. A process only starts executing in a state where ok and ¬ wait are true. Successful termination occurs in states where ok′ and ¬ wait′ are true.
+
+Like in standard CSP, the interactions with the environment are represented using sequences of events, recorded by tr and tr′. The variable tr records the sequence of events that took place before the current process started, while tr′ records all the events that have been observed so far. Finally, ref and ref ′ record the set of events that may be refused by the process at the start, and currently.
+
+The theory of reactive processes contains the fixed points of the functional composition of the following three healthiness conditions R1, R2 and R3.
+
+\noindent\textbf{Definition 11 (Healthiness conditions of reactive processes).}
+
+
+\begin{quote}\small\raggedright
+R1(P) ≜= P ∧tr ≤tr′
+\par
+R2(P) ≜= P[⟨⟩,tr′ −tr/tr,tr′]
+\par
+R3(P) ≜= IIrea ◁wait ▷P, where IIrea ≜= (R1(¬ ok) ∨(v′ = v))
+\end{quote}
+
+R1 requires that in all circumstances the only change that can be observed in the final trace of events tr′ is an extension of the initial tr. As we discuss later, this condition prevents a proper characterisation of angelic nondeterminism for reactive processes. We let go of it in our final theory of angelic processes.
+
+R2 requires that a process must not impose any restriction on the initial value of tr. Finally, R3 requires that if the previous process is waiting for an interaction, that is, wait is true, then the current process P behaves as the identity of the theory IIrea, otherwise it behaves as P itself. Finally, the healthiness condition of the theory of reactive processes is R, the functional composition of R1, R2 and R3.
+
+\noindent\textbf{Definition 12 (Reactive process).} R(P) ≜= R1 ◦R2 ◦R3(P).
+
+
+Like the theory of designs, this theory also forms a complete lattice under refinement.
+
+\subsection{CSP processes as reactive designs}
+The theory of CSP can be described by reactive processes that, in addition, satisfy two healthiness conditions, CSP1 and CSP2, whose definitions we reproduce below.
+
+\noindent\textbf{Definition 13 (Healthiness conditions of CSP).}
+
+
+\begin{quote}\small\raggedright
+CSP1(P) ≜= P ∨R1(¬ ok)
+\par
+CSP2(P) ≜= P ; ((ok ⇒ok′) ∧tr′ = tr ∧ref ′ = ref ∧wait′ = wait)
+\end{quote}
+
+CSP1 requires that if the previous process has diverged, that is, ok is false, then extension of the trace is the only guarantee. CSP2 is H2 restated with the extended alphabet of reactive processes.
+
+\begin{quote}\small\raggedright
+A process that is R, CSP1 and CSP2-healthy can be described in terms of a design. We reproduce this result below, where
+\par
+we use the notation P w = P[w/wait].
+\end{quote}
+
+\noindent\textbf{Theorem 2.} For every CSP process P, R(¬ P f f ⊢Pt f ) = P.
+
+
+This result is important as it establishes that CSP processes can be specified by pre and postconditions, like sequential programs, with R enforcing the required reactive behaviour. For example, a →Chaos, which diverges after performing the event a, is specified by a non-H3 reactive design as follows.
+
+\noindent\textbf{Example 3.} a →Chaos ≜= R(¬ tr ⌢⟨a⟩ ≤tr′ ⊢tr′ = tr ∧a /∈ref ′ ∧wait′).
+
+
+The precondition requires the concatenation of tr with a not to be a prefix of tr′: when a happens, the process diverges. The postcondition describes the behaviour before a is performed: while the process is waiting, when wait′ is true, the trace stays unchanged and a is not refused. Once a occurs, the postcondition makes no guarantees. The application of R1, however, still guarantees extension of the trace.
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig1.png}
+\caption{Galois connection between two lattices, $S$ and $T$.}
+\end{figure}
+
+Despite their name, reactive designs are not designs since R1 requires the extension of the trace to be observed in every circumstance, whereas H1 states that there are no guarantees in an unstable state. The application of R1 after H1 turns a design into a reactive process. Conversely, a reactive process can be turned into a design, by applying H1. These two functions form a Galois connection, which relates non-isomorphic theories with different expressivity. Here we reproduce the general definition of Hoare and He [10] and provide a pictorial illustration in Fig. 1.
+
+\noindent\textbf{Definition 14 (Galois connection).} For lattices S and T , a pair (L, R) of functions L : S →T and R : T →S is defined to be a Galois connection if, and only if, for all X ∈S and Y ∈T :
+
+
+R(Y) ⊑X ⇔Y ⊑L(X)
+
+A link stronger than a Galois connection is a bijection, where each function completely undoes the effect of the other. Not every bijection is a Galois connection. Hoare and He [10] give the example of negation whose inverse is itself, but is not monotonic. It is a known property of Galois connections that the functions are monotonic. In addition, the composition of Galois connections is also a Galois connection.
+
+Our theories, which we describe in the following sections, extend all the theories presented above to cater for a theory that can be used to define angelic nondeterminism in CSP.
+
+\section{UTP framework for angelic nondeterminism}
+As already discussed, when relational models are considered, only one type of nondeterminism can be modelled, either angelic or demonic, but not both [4,29]. Our semantic framework is based on an encoding of multirelations.
+
+In Fig. 2 we illustrate the complete UTP framework for angelic nondeterminism. Each theory of interest is depicted by an ellipse. Labels correspond to the name of the characterising healthiness condition of each theory. Arrows denote linking functions established between theories. Pairs of solid arrows denote isomorphic models, while pairs with a dashed arrow indicate an adjoint (that is part of a Galois connection). The following sections contain a brief introduction to each theory of interest, followed by a complete formal characterisation in the sequel. In Section 4.1 we discuss the multirelational encoding of upward-closed binary multirelations. Section 4.2 presents the theory of angelic designs. The theory of reactive angelic designs is discussed in Section 4.3 followed by the theory of angelic processes in Section 4.4.
+
+\subsection{Binary multirelations and their UTP encoding}
+\begin{quote}\small\raggedright
+To model both forms of nondeterminism in the UTP, a multirelational approach has been considered by Cavalcanti et al.
+\par
+[12]. That work has proposed a predicative encoding of upward-closed binary multirelations, that is, relations between
+\par
+initial states and sets of final states [11]. In that theory, the alphabet consists of input program variables and a sole output
+\par
+variable ac′ that records a set of final states available for angelic choice. Intuitively, the states available for angelic choice
+\par
+are those in ac′, while demonic choice is captured by choice over the value of ac′ itself.
+\end{quote}
+
+\noindent\textbf{Example 4.} We consider the following example, where we define an angelic choice between the assignment of 1 and 2 to the only program variable x: x := 1 ⊔x := 2 = \{x′ ↦→1\} ∈ac′ ∧\{x′ ↦→2\} ∈ac′. 2
+
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/fig2.png}
+\caption{Theories and their relationship through linking functions.}
+\end{figure}
+
+Angelic choice is the least upper bound operator (⊔). As shown above, in every possible set of angelic choices ac′, both assignments are defined to be available to the angel. It is the states that are in the intersection of all possible values of ac′ that are effectively guaranteed choices for the angel, whatever choice the demon makes. This example illustrates a funda- mental property of multirelations: upward closure. This property is enforced by the following healthiness condition, where v and v′ refer to every variable other than ac and ac′, respectively, and PBMH stands for Predicative Binary Multirelation Healthiness Condition.
+
+\noindent\textbf{Definition 15.} PBMH(P) ≜= P ; (ac ⊆ac′ ∧v′ = v).
+
+
+A fixed point of PBMH requires that, if some set of final states ac′ is available for angelic choice, then all of its supersets are also available. The use of ac yields a homogeneous relation suitable for the composition, while v′ = v generalises the definition of Cavalcanti et al. [12] by keeping other variables unchanged.
+
+Since the refinement order is defined as universal reverse implication, like in other UTP theories, the number of angelic choices can be augmented in a refinement step (by further constraining the possible values of ac′ and, therefore, enlarging their distributed intersection). Conversely, demonic choice is the greatest lower bound, disjunction, and so demonic choices can be refined away as usual.
+
+An immediate consequence of PBMH is that no well-behaved program can require the set of final states ac′ to be empty, as established by the following lemma.
+
+\noindent\textbf{Lemma 3.} PBMH(ac′ = ∅) = true.
+
+
+Since there is a requirement that ac′ is upward closed, this theory also satisfies the constraint enforced by H3: arbitrary behaviour when there is nontermination. The proof of Lemma 3, and all other proofs omitted in the sequel, are available in [35].
+
+\begin{quote}\small\raggedright
+In Fig. 2 we depict the PBMH theory. It is isomorphic [12] to that of binary multirelations of Rewitzky [11] with the
+\par
+label BMH. The adjoints, themselves compositions of linking functions, sb2p ◦bm2sb and sb2bm ◦p2sb, are defined in [12]
+\par
+and included for completeness.
+\end{quote}
+
+\subsection{Angelic designs}
+Based on the encoding of the PBMH theory, we develop a theory of angelic designs where we reintroduce the auxiliary Boolean variables ok and ok′ of the original theory of designs. Furthermore, we also generalise that model to cope with non-H3 designs, as required for specifying CSP processes. This theory is characterised by the healthiness conditions A0 and A1, whose functional composition is A (as described in Table 1), and H1 and H2 of the original theory of designs. In Fig. 3, we highlight the theory of angelic designs in the context of Fig. 2. We formalise this theory in Section 5.
+
+
+\begin{table}[ht]
+\centering
+\caption{Healthiness Conditions of Angelic Designs}
+\begin{tabularx}{0.92\linewidth}{>{\bfseries}l X}
+\toprule
+ & \textbf{Description} \\
+\midrule
+A0 & Whenever the precondition of a design is satisfied, then the set of angelic choices is not empty. \\
+A1 & The set of angelic choices must be upward-closed. \\
+A2 & Characterises the subset of relations that effectively do not have any angelic choices. \\
+A  & Functional composition of A0 and A1. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/fig3.png}
+\caption{Theory of angelic designs and links.}
+\end{figure}
+
+\begin{quote}\small\raggedright
+The additional healthiness condition A2 characterises the subset of A designs that do not exhibit angelic nondeterminism.
+\par
+It is useful for the validation: we establish that the subset of A2 angelic designs is isomorphic to the original theory of
+\par
+homogeneous designs, via the linking functions d2ac and ac2p. Moreover, we also establish that the subset of angelic
+\par
+designs that is H3-healthy is isomorphic to the PBMH theory. This uses two linking functions, d2pbmh and pbmh2d, which
+\par
+map predicates in that theory to angelic designs, and vice versa. The formal definition of these healthiness conditions is
+\par
+discussed in Section 5: monotonicity, idempotency, commutativity and the isomorphisms are proved in [35].
+\end{quote}
+
+For validation, we have also developed an extended set-based model of binary multirelations (labelled as BMH⊥) that is isomorphic to A-healthy designs [36,35]. This model is more expressive than the original model of binary multirelations in that it can capture non-H3 designs. That model is not only useful to study certain aspects of angelic designs, but also allows related theories to be studied in the set-based model of binary multirelations. In Fig. 2 we illustrate the relevant isomorphism via the pair of linking functions bmb2d and d2bmb.
+
+\subsection{Reactive angelic designs}
+Based on the theory of angelic designs, we then define a conservative extension of CSP with angelic nondeterminism. It encodes the observational variables of reactive processes as record components of states, and adopts every healthiness condition of CSP in the context of this encoding. For each healthiness condition R1, R2, R3, CSP1 and CSP2, we introduce a counterpart in this model, as summarized in Table 2.
+
+The theory is characterised by RAD, which is defined by the composition of all healthiness conditions of interest. The healthiness condition NDRAD is useful for studying the subset of non-divergent processes.
+
+We establish that the subset of RAD with no angelic nondeterminism, characterised by A2, is isomorphic to the theory of CSP. This is achieved by introducing the linking functions ac2p and p2ac. In general, if we consider the superset RAD, a Galois connection exists between the theories. This relationship is illustrated in Fig. 4. The formalisation of reactive angelic designs is the subject of Section 6.
+
+
+\begin{table}[ht]
+\centering
+\caption{Healthiness Conditions of Reactive Angelic Designs}
+\begin{tabularx}{0.96\linewidth}{>{\bfseries}l X}
+\toprule
+ & \textbf{Description} \\
+\midrule
+RA1 & There must be some set of angelic choices available to the angel, and in any such set, the trace of events can only be extended. \\
+RA2 & A process must be insensitive to the initial value of the trace of events. \\
+RA3 & A process must not start executing before its predecessor has terminated. \\
+RA  & Functional composition of RA1, RA2 and RA3. \\
+CSPA1 & When in an unstable state, RA1 must be enforced. \\
+CSPA2 & A recast of H2 within this model. \\
+RAD & Functional composition of all of the above healthiness conditions and PBMH. \\
+NDRAD & Characterises the subset of non-divergent reactive angelic designs. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\begin{table}[ht]
+\centering
+\caption{Healthiness Conditions of Angelic Processes}
+\begin{tabularx}{0.96\linewidth}{>{\bfseries}l X}
+\toprule
+ & \textbf{Description} \\
+\midrule
+RA3AP & A recast of RA3 in the theory of angelic processes. \\
+AP & Functional composition of RA3AP, RA2, A and, H1 and H2 of the theory of designs (with the corresponding alphabet of this theory). \\
+NDAP & Characterises the subset of non-divergent angelic processes. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig4.png}
+\caption{Theory of reactive angelic designs and links with CSP.}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/fig5.png}
+\caption{Theory of angelic processes and link with reactive angelic designs.}
+\end{figure}
+
+\subsection{Angelic processes}
+As already said, to allow angelic choice to exclude potentially divergent processes, we enrich the theory of reactive angelic designs by allowing the history of events to be undone whenever there is the potential to diverge. This is achieved by not enforcing RA1 in all cases. To this end, we redefine RA3 as RA3AP, and define the healthiness condition AP via the composition described in Table 3. When compared to RAD, we let go of RA1 and, therefore, CSP1, and adopt RA3AP instead of RA3. As a consequence this model is effectively a theory of angelic designs, where RA1 is required in the postcondition.
+
+We establish a Galois connection between the theory of angelic processes and the theory of reactive angelic designs, and also prove that an isomorphism exists for the subsets of non-divergent processes, characterised by NDRAD and NDAP, respectively. This is achieved by turning reactive angelic designs into designs, through H1, while in the opposite direction we just enforce RA1. These links are depicted in Fig. 5 where we highlight both theories in the context of Fig. 2.
+
+A detailed account of the theory of angelic processes is presented in Section 7. Having now given an overview of our theories for angelic nondeterminism, we present in the next sections a more detailed account of their alphabet, healthiness conditions, and Galois connections. For the final theory of angelic processes, we also present the definition of some operators.
+
+\section{Angelic designs}
+\begin{quote}\small\raggedright
+Our theory of angelic designs is defined by considering the observational variables ok and ok′ and two additional vari-
+\par
+ables s : State(Sα) and ac′ : P State(Sα), where State(Sα) is a record type parametrised by a set of variables Sα specifying
+\par
+the names of the record components. We represent a record as a set of ordered pairs, where the first component is a
+\par
+variable name, from the set of all possible variables Sα, and the second component corresponds to the associated value.
+\end{quote}
+
+\noindent\textbf{Definition 16 (Alphabet).}
+
+
+\begin{quote}\small\raggedright
+s : State(Sα);ac′ : P State(Sα);ok,ok′ : \{true, false\}, where State(Sα) = \{x ↦→e | x ∈Sα\}
+\end{quote}
+
+The variable s encapsulates the initial values of program variables as record components of s. The set of final states ac′ is similar to that of the PBMH theory. (A notable difference is that we do not dash the variable names in the record components. This deliberate choice bears no consequences, other than simplifying notation.) The set of program variables Sα recorded in both s and final states of ac′ is the same.
+
+\noindent\textbf{Example 5.} We consider the following angelic design, where the value of the expression e is assigned to the program variable x: x := e ≜= (true ⊢s ⊕\{x ↦→e\} ∈ac′). The precondition is true, while the postcondition states that there is a final state in ac′ where the initial state s is overridden so that the component x takes the value of e. 2
+
+
+\subsection{Healthiness conditions}
+The healthiness conditions for angelic designs are H1 and H2 from the theory of designs, and A, defined as the functional composition of A0 and A1 presented below.
+
+\noindent\textbf{Definition 17.}
+
+
+\begin{quote}\small\raggedright
+A0(P) ≜= P ∧((ok ∧¬ P f ) ⇒(ok′ ⇒ac′ ̸= ∅))
+\par
+A1(P) ≜= (¬ PBMH(P f ) ⊢PBMH(Pt))
+\par
+A(P) ≜= A0 ◦A1(P)
+\end{quote}
+
+The healthiness condition A0 requires that when a design terminates successfully, then there must be some final state in ac′ available for angelic choice. The application of A0 to a design strengthens its postcondition to require the set of states ac′ not to be empty; this is established by the following theorem. Detailed proof of this result and all others omitted in the sequel can be found in [35].
+
+\noindent\textbf{Theorem 3.} A0(¬ P f ⊢Pt) = (¬ P f ⊢Pt ∧ac′ ̸= ∅).
+
+
+A1 requires that the final set of states in both the postcondition and the negation of the precondition are upward closed. We observe that A1 can also be expressed as the application of PBMH to the whole of the design P. We consider the following example, where A is applied to the assignment operator.
+
+\noindent\textbf{Example 6.}
+
+
+\begin{quote}\small\raggedright
+A(x := e)
+\par
+\{Definition of assignment\}
+\par
+= A(true ⊢s ⊕\{x ↦→e\} ∈ac′)
+\par
+\{Definition of A\}
+\par
+= A0 ◦A1(true ⊢s ⊕\{x ↦→e\} ∈ac′)
+\par
+\{Definition of A0 and A1\}
+\par
+= (¬ PBMH(¬ true) ⊢PBMH(s ⊕\{x ↦→e\} ∈ac′) ∧ac′ ̸= ∅)
+\par
+\{Predicate calculus\}
+\par
+= (¬ PBMH(false) ⊢PBMH(s ⊕\{x ↦→e\} ∈ac′) ∧ac′ ̸= ∅)
+\par
+\{Definition of PBMH\}
+\par
+= (¬ false ⊢s ⊕\{x ↦→e\} ∈ac′ ∧ac′ ̸= ∅)
+\par
+\{Predicate calculus\}
+\par
+= (true ⊢s ⊕\{x ↦→e\} ∈ac′)
+\end{quote}
+
+The application of A1 to the design results in the application of PBMH to both the negation of the precondition and the postcondition. When A0 is applied to the design, following from Theorem 3, the conjunct ac′ ̸= ∅appears in the postcondi- tion. The resulting design is a fixed point of A. 2 Since H1, H2 and A commute, and these functions are all idempotent and monotonic, so is the functional composition of H1, H2 and A. Furthermore, because A is idempotent and monotonic, and the theory of designs is a complete lattice, so is our theory of A-healthy designs [10, Sec. 4.1, Ch. 4].
+
+\subsection{Sequential composition}
+Amongst the operators in the theory of angelic designs we single out sequential composition as the most interesting due to the use of non-homogeneous relations. Its definition is given by considering the auxiliary variables ok and ok′ separately, as follows.
+
+\noindent\textbf{Definition 18.} P ;D Q ≜= ∃ok0 • P[ok0/ok′] ;A Q [ok0/ok].
+
+
+This definition resembles relational composition with the difference that, instead of relational composition, we use the operator ;A that handles the non-homogeneous alphabet. Below, we reproduce the definition of the sequential composition operator ;A of the PBMH theory, in the context of this theory.
+
+\noindent\textbf{Definition 19.} P ;A Q ≜= P[\{s | Q \}/ac′].
+
+
+The resulting sets of angelic choices are those of Q , that can be reached from initial states of Q that are available for P as a set ac′ of angelic choices. This use of substitution can be interpreted as back propagating the necessary information concerning the final states. By way of illustration, we consider the following example. The choice is between the assignment of true or false to the program variable b, as denoted by t and f , respectively. This is sequentially composed with the program that maintains the value of b provided that the initial value of b is true, and otherwise aborts.
+
+\noindent\textbf{Example 7.}
+
+
+\begin{quote}\small\raggedright
+(\{b ↦→t\} ∈ac′ ⊔\{b ↦→f \} ∈ac′) ;A (s.b ⇒s ∈ac′)
+\par
+\{Definition of ⊔\}
+\par
+= (\{b ↦→t\} ∈ac′ ∧\{b ↦→f \} ∈ac′) ;A (s.b ⇒s ∈ac′)
+\par
+\{Definition of ;A\}
+\par
+= (\{b ↦→t\} ∈ac′ ∧\{b ↦→f \} ∈ac′)[\{s | s.b ⇒s ∈ac′\}/ac′]
+\par
+\{Substitution\}
+\par
+= \{b ↦→t\} ∈\{s | s.b ⇒s ∈ac′\} ∧\{b ↦→f \} ∈\{s | s.b ⇒s ∈ac′\}
+\par
+\{Property of sets\}
+\par
+= (\{b ↦→t\}.b ⇒\{b ↦→t\} ∈ac′) ∧(\{b ↦→f \}.b ⇒\{b ↦→f \} ∈ac′)
+\par
+\{Record component b\}
+\par
+= (true ⇒\{b ↦→t\} ∈ac′) ∧(false ⇒\{b ↦→f \} ∈ac′\})
+\par
+\{Predicate calculus\}
+\par
+= \{b ↦→t\} ∈ac′
+\end{quote}
+
+The only possible result is the assignment of true to b, since this avoids aborting. 2 Proof for closure of sequential composition and other operators under A is available in [35].
+
+\subsection{Characterising designs without angelic nondeterminism}
+The sequential composition operator allows us to characterise the subset of angelic designs that do not exhibit angelic nondeterminism. Such a design always provides at most one angelic choice. In other words, for every initial state, there is at most one final state available in the distributed intersection over all possible values of ac′. This leads to the following healthiness condition A2.
+
+\noindent\textbf{Definition 20.} A2(P) ≜= PBMH(P ;A \{s\} = ac′).
+
+
+Informally, A2 requires the set of final states in P to be either empty or a singleton, otherwise it becomes false. Since this purposely breaks the upward-closure, PBMH must be applied as a result. If we consider the definition of PBMH and ;A, the definition of A2 can be expanded as established by the following Theorem 4.
+
+\noindent\textbf{Theorem 4.} A2(P) = P[∅/ac′] ∨(∃y • P[\{y\}/ac′] ∧y ∈ac′).
+
+
+It confirms our intuition that P must hold when ac′ is the empty set, and thus the resulting ac′ is unconstrained by upward-closure, and when ac′ is a singleton \{y\}, in which case y is in every ac′.
+
+We consider the following example, where A2 is applied to the angelic choice in Example 4.
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.66\linewidth]{figures/fig6.png}
+\caption{Encoding variables in a theory of angelic designs using $p2ac$.}
+\end{figure}
+
+\noindent\textbf{Example 8.}
+
+
+\begin{quote}\small\raggedright
+A2(x := 1 ⊔x := 2)
+\par
+\{Definition of assignment\}
+\par
+= A2((true ⊢s ⊕\{x ↦→1\} ∈ac′) ⊔(true ⊢s ⊕\{x ↦→2\} ∈ac′))
+\par
+\{Definition of ⊔\}
+\par
+= A2(true ⊢s ⊕\{x ↦→1\} ∈ac′ ∧s ⊕\{x ↦→2\} ∈ac′)
+\par
+\{Lemma 17\}
+\par
+= (¬ A2(false) ⊢A2(s ⊕\{x ↦→1\} ∈ac′ ∧s ⊕\{x ↦→2\} ∈ac′))
+\par
+\{Definition of A2\}
+\par
+= (true ⊢false)
+\end{quote}
+
+The result is not a fixed point of A2, rather it is an angelic design with postcondition false. This design is the top of the lattice and captures the notion of miracle. Like in the theory of designs, this is an infeasible program that can never be started. Lemma 17 and all other results referenced in examples and proofs here are in the appendix. 2
+
+\subsection{From designs to angelic designs}
+To study the correspondence of results across the models depicted in Fig. 3, we consider the mapping from designs to angelic designs. The main concern is encoding both the pre and postcondition in terms of a single initial state s and a set of final states ac′. Since angelic designs are designs, ok and ok′ retain the same meaning. The function d2ac, that maps from designs to angelic designs, is defined as follows.
+
+\noindent\textbf{Definition 21.} d2ac(P) ≜= (¬ p2ac(P f ) ∧(¬ P f [s/inα−ok] ; true) ⊢p2ac(Pt)).
+
+
+The negation of the precondition P f and the postcondition Pt are mapped using the function p2ac, defined below, while the second conjunct in the precondition of the angelic design requires that whenever the precondition ¬ P f holds, then there is some final observation of the values of the variables in outα. Essentially this allows the value of ac′ to be unspecified when the precondition ¬ P f is not satisfied.
+
+\begin{quote}\small\raggedright
+The predicate ¬ P f [s/inα−ok] ; true can be restated as ∃outα • ¬ P f [s/inα−ok], where the sets inα and outα include
+\par
+the program variables of the target theory of designs, and inα−ok excludes the variable ok from the set. In a substitution
+\par
+P[s/Sα], the boldface indicates that s is a record, and so the substitution is not simply s for Sα. Instead, for an arbitrary
+\par
+set of variables Sα, this substitution is defined as follows.
+\end{quote}
+
+\noindent\textbf{Definition 22.} P[z/Sα] ≜= P[z.s0, ..., z.sn/s0, ..., sn].
+
+
+\begin{quote}\small\raggedright
+Each variable si in Sα is replaced with z.si. As an example, we consider the substitution (x′ = 2 ∧ok′)[s, z/inα−ok, outα−ok′],
+\par
+whose result is z.x′ = 2 ∧ok′. The substitution [z/Sα] is well-formed when Sα is a subset of the record components of z.
+\end{quote}
+
+The main purpose of p2ac, which we define below, is to encode predicates in terms of s and ac′. For a given predicate P whose input and output alphabets are inα and outα, respectively, its encoding in a theory with angelic nondeterminism is given by the following function p2ac, which we illustrate in Fig. 6.
+
+\noindent\textbf{Definition 23.} p2ac(P) ≜= ∃z • P[s, z/inα−ok, outα−ok′] ∧undash(z) ∈ac′.
+
+
+Each variable in the set of input and output variables, other than ok and ok′, is replaced with the corresponding component of the initial state s and a final state z from the set of final states ac′. Since in our encoding states have undashed com- ponents, we use the function undash to rename every record component in z, and thus require undash(z) to be in ac′. The variables ok and ok′ are unchanged.
+
+\noindent\textbf{Example 9.} We consider the example where we apply d2ac to the non-H3 design (y = 1 ∧x′ ̸= 2 ⊢x′ = 1), equal to (ok ∧ y = 1) ⇒(x′ = 2 ∨(x′ = 1 ∧ok′)), which, provided the initial value of y is 1, either terminates with a value 1 for x, or gives x the value 2, irrespective of termination. We assume that inα = \{ok, x, y\} and outα = \{ok′, x′, y′\}. (Non-H3 designs are of interest in a theory of CSP.)
+
+
+\begin{quote}\small\raggedright
+d2ac(y = 1 ∧x′ ̸= 2 ⊢x′ = 1)
+\par
+\{Definition of d2ac\}
+\par
+= (¬ p2ac(¬ (y = 1 ∧x′ ̸= 2)) ∧((y = 1 ∧x′ ̸= 2)[s/inα−ok] ; true) ⊢p2ac(x′ = 1))
+\par
+\{Substitution\}
+\par
+= (¬ p2ac(¬ (y = 1 ∧x′ ̸= 2)) ∧((s.y = 1 ∧x′ ̸= 2) ; true) ⊢p2ac(x′ = 1))
+\par
+\{Sequential composition\}
+\par
+= (¬ p2ac(¬ (y = 1 ∧x′ ̸= 2)) ∧s.y = 1 ⊢p2ac(x′ = 1))
+\par
+\{Predicate calculus\}
+\par
+= (¬ p2ac(y = 1 ∧x′ = 2) ∧s.y = 1 ⊢p2ac(x′ = 1))
+\par
+\{Definition of p2ac\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+¬ (s.y = 1 ∧∃z • z.x′ = 2 ∧undash(z) ∈ac′) ∧s.y = 1
+\par
+⊢
+\par
+∃z • z.x′ = 1 ∧undash(z) ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Property of undash and calculus\}
+\par
+= ((¬ ∃z • z.x = 2 ∧z ∈ac′) ∧s.y = 1 ⊢∃z • z.x = 1 ∧z ∈ac′)
+\par
+The result is a design whose precondition states that there is no final state z in ac′ whose component x has value 2, and
+\par
+the value of component y in s is 1. Similarly, the postcondition states that there is a state z in the set of angelic choices ac′,
+\par
+where the value of x is 1. Because the precondition of (y = 1 ∧x′ ̸= 2 ⊢x′ = 1) refers to x′, in the angelic design, we have
+\par
+a reference to ac′ in the precondition. In the postcondition, the choices for the angel are those that guarantee termination,
+\par
+and so record a value of 1 for x.
+\par
+2
+\end{quote}
+
+\subsection{From angelic designs to designs}
+We now consider the mapping from angelic designs to designs. It is defined by the function ac2p, whose goal is to collapse the set of final states ac′ into a single state, and, introduce the input and output variables as variables in their own right, rather than as components of records. Its definition is presented below.
+
+\noindent\textbf{Definition 24.} ac2p(P) ≜= PBMH(P)[StateII(inα−ok)/s] ;A x : outα−ok′ • dash(s).x = x.
+
+
+We define ac2p(P) in terms of the predicate obtained by applying PBMH to P; this ensures upward closure of ac′. In this way, instead of requiring P to be PBMH-healthy, we make ac2p more widely applicable. This is useful in the definition of a link between angelic designs and reactive processes (see Section 6.3).
+
+\begin{quote}\small\raggedright
+Above, in PBMH(P), we replace references to components of s to introduce the corresponding input variables of the set
+\par
+inα−ok, which excludes ok. For a set of variables Sα, StateII(Sα) is an identity record, whose components si are mapped
+\par
+to the respective variables si. As already mentioned, ok and ok′ retain the same meaning. Finally, the resulting predicate
+\par
+is sequentially composed, using ;A, with a predicate that introduces the output variables of the final state, except for ok′.
+\par
+Since in our encoding the components of a state are always undashed, we apply the function dash, the inverse of undash,
+\par
+to s.
+\end{quote}
+
+\noindent\textbf{Definition 25.} StateII(Sα) ≜= \{s0 ↦→s0, ..., sn ↦→sn\}.
+
+
+\begin{quote}\small\raggedright
+As an example, we consider the substitution (s.x = 1 ∧ok)[StateII−ok(inα)/s], whose result is x = 1 ∧ok. If we consider the
+\par
+definition of PBMH and ;A, then ac2p can be rewritten as established by Lemma 4.
+\end{quote}
+
+\noindent\textbf{Lemma 4.} ac2p(P) = ∃ac′ • P[StateII(inα−ok)/s] ∧∀z • z ∈ac′ ⇒ x : outα−ok′ • dash(z).x = x.
+
+
+The variable ac′ is quantified away, and for each state z in ac′, the output variables in outα, except for ok′, are introduced and set to their respective values in z. If there is more than one state in ac′, then ac2p yields false since x cannot take more than one value.
+
+\noindent\textbf{Example 10.} We consider below the application of ac2p to the angelic choice in Example 4.
+
+
+\begin{quote}\small\raggedright
+ac2p(x := 1 ⊔x := 2)
+\par
+\{Definition of assignment\}
+\par
+= ac2p((true ⊢\{x ↦→1\} ∈ac′) ⊔(true ⊢\{x ↦→2\} ∈ac′))
+\par
+\{Conjunction of designs\}
+\par
+= ac2p(true ⊢\{x ↦→1\} ∈ac′ ∧\{x ↦→2\} ∈ac′)
+\par
+\{Lemma 24\}
+\par
+= (¬ ac2p(¬ true) ⊢ac2p(\{x ↦→1\} ∈ac′ ∧\{x ↦→2\} ∈ac′))
+\par
+\{Definition of ac2p\}
+\par
+= (¬ false ⊢x′ = 1 ∧x′ = 2)
+\par
+\{Predicate calculus\}
+\par
+= (true ⊢false)
+\end{quote}
+
+The angelic nondeterminism is collapsed and the result is the top of the lattice of designs, a miraculous design, since angelic choice cannot be represented in a design. 2
+
+\subsection{Isomorphism and Galois connection}
+Having defined a pair of linking functions between the theories of angelic designs and designs, we show that there is a Galois connection between the two theories. In addition, when we consider the subset of A2-healthy designs, we have an isomorphism.
+
+The mapping of a design P through d2ac and then ac2p yields the same design P as established below.
+
+\noindent\textbf{Theorem 5.} Provided that P is a design, ac2p ◦d2ac(P) = P.
+
+
+In other words, in our theory of angelic designs we can model the original designs of Hoare and He [10] without angelic nondeterminism. This is a reassuring result regarding the suitability of our model.
+
+When the linking functions are applied in the reverse order, however, we do not obtain the same design P. This result is established by Theorem 6.
+
+\noindent\textbf{Theorem 6.} Provided P is an A-healthy design, d2ac ◦ac2p(P) ⊒P.
+
+
+In general, the result of the application of ac2p followed by d2ac to an A-healthy design P is stronger than P, as illustrated in Example 10. This is because the angelic nondeterminism is removed. The results of Theorems 5 and 6 establish that we have a Galois connection between the two theories.
+
+If we consider the subset of A-healthy designs that are in addition A2-healthy, then we can prove the reverse implication as established below.
+
+\noindent\textbf{Theorem 7.} Provided P is an A0–A2-healthy design, d2ac ◦ac2p(P) ⊑P.
+
+
+These results establish that there is a bijection for the subset of A2-healthy designs.
+
+\noindent\textbf{Theorem 8.} Provided P is a design that is A0–A2-healthy, d2ac ◦ac2p(P) = P.
+
+
+This result confirms that these models are isomorphic as depicted in Figs. 2 and 3.
+
+As previously discussed, CSP processes can be specified as the image of non-H3 designs through the healthiness condition R of reactive processes. Angelic designs, which encompass non-H3 designs, are a basis for the specification of CSP processes with angelic nondeterminism, which we pursue next.
+
+\section{Reactive angelic designs}
+We consider a theory where the observational variables of the theory of reactive processes are encoded as components of a State. We define its alphabet as follows.
+
+\noindent\textbf{Definition 26 (Alphabet).} ok, ok′ : \{true, false\}; s : State(\{tr, ref , wait\}); ac′ : P State(\{tr, ref , wait\}).
+
+
+In addition to a single initial state s, a set of final states ac′, and ok and ok′, we require that every State has components named tr, wait and ref . This enables the angelic choice over the final or intermediate observations of the observational variables tr, ref and wait for reactive processes.
+
+Next, in Section 6.1 we show how we can express in this encoding every healthiness condition of the original theory of reactive processes, followed by the healthiness conditions of CSP in Section 6.2. We then study the link between CSP and reactive angelic designs in Section 6.3. This is followed by a discussion of important operators and interesting algebraic properties in Section 6.4. Finally, in Section 6.5 we discuss the link with the subset of non-divergent reactive angelic designs.
+
+\subsection{Healthiness conditions}
+The first property of interest that underpins the theory of reactive processes is that the history of events observed cannot be undone. We recall that this is established by the healthiness condition R1. In general, for any initial state x, the set of all final states that satisfy this property is given by Statestr≤tr′(x) below.
+
+\noindent\textbf{Definition 27.} Statestr≤tr′(x) ≜= \{z : State(\{tr, ref , wait\}) | x.tr ≤z.tr\}.
+
+
+This definition is used for characterising the first healthiness condition, RA1.
+
+\noindent\textbf{Definition 28.} RA1(P) ≜= (P ∧ac′ ̸= ∅)[Statestr≤tr′(s) ∩ac′/ac′].
+
+
+\begin{quote}\small\raggedright
+RA1 not only enforces trace extension for final states in ac′, but also that there is some final state satisfying this property
+\par
+available for angelic choice. This is achieved by substituting ac′ with the intersection of ac′ and the set Statetr≤tr′(s) of final
+\par
+states whose trace is a suffix of s.tr in P ∧ac′ ̸= ∅. We require ac′ ̸= ∅because, if the angel is to ensure trace extension, it
+\par
+cannot be given an empty set of choices. We note that, even if P is PBMH healthy, it does not ensure ac′ ̸= ∅, although it
+\par
+may not require ac′ = ∅.
+\end{quote}
+
+A consequence of the definition of RA1 is that it also enforces A0.
+
+\noindent\textbf{Theorem 9.} RA1 ◦A0(P) = RA1(P).
+
+
+Although A0 only requires ac′ not to be empty in the postcondition of an angelic design, RA1 requires this property under all circumstances, that is, even if the precondition is not satisfied.
+
+RA2, which requires a process to be insensitive to the initial trace of events s.tr. It is the counterpart to R2 of the original theory of reactive processes, and is also defined using substitution.
+
+\noindent\textbf{Definition 29.} RA2(P) ≜= P
+
+
+\begin{quote}\small\raggedright
+s ⊕\{tr ↦→⟨⟩\},
+\par
+z
+\par
+z ∈ac′ ∧s.tr ≤z.tr
+\par
+• z ⊕\{tr ↦→z.tr −s.tr\}
+\par
+s,ac′
+\end{quote}
+
+.
+
+It defines the component tr in the initial state s to be the empty sequence. For the set ac′, it considers the states z in there whose traces z.tr are an extension of s.tr. The substitution replaces ac′ with the set of states obtained by changing the trace of each such z with the difference with respect to s.tr.
+
+Similarly to the theory of reactive processes, we must ensure that a process cannot be started before the previous process has finished interacting with the environment. The counterpart to R3 in our new theory is RA3. Before exploring its definition, we introduce the identity IIRac of our theory, used to define RA3.
+
+\noindent\textbf{Definition 30.} IIRac ≜= (RA1(¬ ok) ∨(ok′ ∧s ∈ac′)).
+
+
+The behaviour for an unstable state ¬ ok is given by RA1, that is, there must be at least one final state in ac′ whose trace is a suffix of the initial trace s.tr. Otherwise, the process is stable, ok′ is true, and the initial state s is in the set of final states ac′. Using IIRac, we define RA3 below.
+
+\noindent\textbf{Definition 31.} RA3(P) ≜= IIRac ◁s.wait ▷P.
+
+
+This definition is similar to that of R3, except that we use IIRac as the identity, and s.wait instead of wait as a condition, since wait is a component of the initial state s.
+
+Our theory of reactive angelic designs is characterised by the functional composition of RA1, RA2, and RA3, besides PBMH. To provide a parallel with the original theory of reactive processes, we define part of this composition as RA. The order of the functional composition in the definition of RA is not important since RA1, RA2 and RA3 commute [35].
+
+\noindent\textbf{Definition 32.} RA(P) ≜= RA1 ◦RA2 ◦RA3(P).
+
+
+PBMH and RA1, however, do not commute. We consider the following Example 11, where the healthiness conditions R1A and PBMH are applied to the relation ac′ = ∅, which is not PBMH-healthy.
+
+\noindent\textbf{Example 11.}
+
+
+\begin{quote}\small\raggedright
+RA1 ◦PBMH(ac′ = ∅)
+\par
+\{Definition of PBMH\}
+\par
+= RA1(∃ac0 • ac0 = ∅∧ac0 ⊆ac′)
+\par
+\{One-point rule and property of sets\}
+\par
+= RA1(true)
+\par
+PBMH ◦RA1(ac′ = ∅)
+\par
+\{Definition of RA1\}
+\par
+= PBMH((ac′ = ∅∧ac′ ̸= ∅)[Statestr≤tr′(s) ∩ac′/ac′])
+\par
+\{Predicate calculus\}
+\par
+= PBMH(false)
+\par
+\{Definition of PBMH\}
+\par
+= false
+\end{quote}
+
+In the first case, the application of PBMH yields true. The result of the functional composition is then RA1(true). On the other hand, in the second case, there is a contradiction arising from the application of RA1, which leaves us with the result false. 2
+
+\begin{quote}\small\raggedright
+In the definition of the healthiness condition of the theory of reactive angelic designs, presented in the next section,
+\par
+PBMH is applied before RA. Since all conditions are monotonic and idempotent [35], our theory is a complete lattice [10,
+\par
+Sec. 4.1, Ch. 4].
+\end{quote}
+
+\subsection{Reactive angelic designs}
+As mentioned in Section 3, in the original theory of CSP, another two healthiness conditions, CSP1 and CSP2, are required, in addition to R. To consider a theory of CSP with angelic nondeterminism we define a counterpart to these functions below. The first healthiness condition of interest is CSPA1, which is the counterpart to CSP1 in the new theory. Its definition is presented below.
+
+\noindent\textbf{Definition 33.} CSPA1(P) ≜= P ∨RA1(¬ ok).
+
+
+A CSP process with angelic nondeterminism P is required to observe RA1 when in an unstable state. For an RA-healthy process, this property is already enforced by RA1 under all circumstances. The following theorem establishes that this behaviour can also be described as the composition of RA1 after H1.
+
+\noindent\textbf{Theorem 10.} RA1 ◦CSPA1(P) = RA1 ◦H1(P).
+
+
+This is because CSPA1 requires that in an unstable state there are no meaningful observations other than those where the trace is extended, a requirement equally enforced by H1 when composed with RA1.
+
+The counterpart to CSP2 is defined as H2 with the extended alphabet that includes s and ac′.
+
+\noindent\textbf{Definition 34.} CSPA2(P) ≜= H2(P).
+
+
+\begin{quote}\small\raggedright
+That is, CSPA2(P) = P ; ((ok ⇒ok′) ∧s′ = s ∧ac′ = ac).
+\end{quote}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.88\linewidth]{figures/fig7.png}
+\caption{Relationship between theories.}
+\end{figure}
+
+Finally, as previously indicated, our conservative extension of the theory of CSP processes is defined by RAD, the compo- sition of all the healthiness conditions of interest.
+
+\noindent\textbf{Definition 35.} RAD(P) ≜= RA ◦CSPA1 ◦CSPA2 ◦PBMH(P).
+
+
+\begin{quote}\small\raggedright
+Since PBMH and RA1 do not commute, PBMH is applied first. The fixed points of RAD are the reactive angelic designs.
+\par
+Every such process P can be expressed as the image of an angelic design through the function RA as established by the
+\par
+following theorem, where P o
+\par
+w = P[o, s ⊕\{wait ↦→w\}/ok′, s].
+\end{quote}
+
+\noindent\textbf{Theorem 11.} RAD(P) = RA ◦A(¬ P f f ⊢Pt f ).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RAD(P)
+\par
+\{Definition of RAD\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦CSPA1 ◦CSPA2 ◦PBMH(P)
+\par
+\{Theorem 10\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦H1 ◦CSPA2 ◦PBMH(P)
+\par
+\{CSPA2 is H2\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦H1 ◦H2 ◦PBMH(P)
+\par
+\{Theorem 9\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦A0 ◦H1 ◦H2 ◦PBMH(P)
+\par
+\{Theorems 64 and 65\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦A0 ◦PBMH ◦H1 ◦H2(P)
+\par
+\{Definition of design\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦A0 ◦PBMH(¬ P f ⊢Pt)
+\par
+\{Definition of A\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦A(¬ P f ⊢Pt)
+\par
+\{Theorems 68, 69 and 71\}
+\par
+= RA1 ◦RA2 ◦RA3 ◦A(¬ P f ⊢Pt)
+\par
+\{Lemmas 18 and 19\}
+\par
+= RA1 ◦RA2 ◦RA3 ◦A((¬ P f ⊢Pt) f )
+\par
+\{Substitution\}
+\par
+= RA1 ◦RA2 ◦RA3 ◦A(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Definition of RA\}
+\par
+= RA ◦A(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+2
+\end{quote}
+
+This is a result similar to that for CSP processes as the image of designs through R. Since both RA and A are monotonic and idempotent, and the theory of designs is a complete lattice [10], so is the theory of reactive angelic designs just presented.
+
+\subsection{Relationship with CSP}
+\begin{quote}\small\raggedright
+The theory of reactive angelic designs can be related to the original theory of CSP through the pair of linking func-
+\par
+tions ac2p and p2ac previously introduced in Section 5. We employ them by considering the set of variables inα to be
+\par
+\{tr, ref , wait, ok\}, and a corresponding set of variables outα with dashed counterparts.
+\end{quote}
+
+The relationship between the models has previously been illustrated in Fig. 2. Here we focus our attention on the relationship with CSP. In Fig. 7a each theory is labelled according to its healthiness conditions. The subset of reactive angelic designs that corresponds exactly to CSP processes is characterised by A2, the healthiness condition discussed in Section 5 that characterises predicates with no angelic nondeterminism.
+
+Fig. 7b illustrates the relationship between the predicates of each theory. For a reactive angelic design P, the composition p2ac ◦ac2p(P) yields a stronger predicate, since any angelic nondeterminism in P is collapsed into a single final state. On the other hand, for a predicate Q of the CSP theory, ac2p ◦p2ac(Q ) yields exactly Q . Thus a Galois connection exists between the theories.
+
+\subsubsection{From reactive angelic designs to CSP}
+Application of the function ac2p to a predicate P that is both RA-healthy and PBMH-healthy yields a healthy counterpart in the original theory as established by the following theorem.
+
+\noindent\textbf{Theorem 12.} Provided P is PBMH-healthy, ac2p ◦RA(P) = R ◦ac2p(P).
+
+
+If P is a reactive angelic design, then the application of ac2p yields a reactive design.
+
+\noindent\textbf{Theorem 13.} ac2p ◦RA ◦A(¬ P f f ⊢Pt f ) = R(¬ ac2p(P f f ) ⊢ac2p(Pt f )).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+ac2p ◦RA ◦A(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Theorem 67\}
+\par
+= ac2p ◦RA ◦PBMH(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Theorem 12\}
+\par
+= R ◦ac2p ◦PBMH(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Lemma 25\}
+\par
+= R ◦ac2p(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Lemma 24\}
+\par
+= R(¬ ac2p(P f
+\par
+f ) ⊢ac2p(Pt
+\par
+f ))
+\par
+2
+\end{quote}
+
+The function ac2p can be applied directly to the pre and postconditions of the reactive angelic design. This is a pleasing result that supports the reuse of results across the theories by defining an approach for calculating corresponding CSP operators from reactive angelic designs.
+
+\begin{quote}\small\raggedright
+In the next example, ac2p is applied to a →RAD StopRAD ⊔RAD b →RAD StopRAD, the angelic choice between a prefixing
+\par
+on a followed by deadlock, and on b followed by deadlock. The operators of the theory of reactive angelic designs have
+\par
+subscript RAD to distinguish them from those of the original theory of CSP, which have subscript R. To describe this process
+\par
+as a reactive angelic design, we use the following operator.
+\end{quote}
+
+\noindent\textbf{Definition 36.} ∈⃝y ac′(P) ≜= ∃y • y ∈ac′ ∧P[\{y\}/ac′].
+
+
+The predicate ∈⃝y ac′(P) requires that P admits a state y as a single option for angelic choice, effectively defining y as the only (angelic) choice available. In general, this predicate allows the definition of CSP operators to be lifted into the theory of reactive angelic designs as further illustrated in the next section.
+
+\noindent\textbf{Example 12.} By the definitions of prefixing, StopRAD and ⊔RAD, we can describe the reactive angelic design a →RAD StopRAD ⊔RAD b →RAD StopRAD as shown below.
+
+
+RA ◦A
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝true ⊢
+\par
+⎛
+\par
+⎝
+\par
+∈⃝y
+\par
+ac′
+\par
+y.wait ∧
+\par
+(y.tr = s.tr ∧a /∈y.ref ) ∨y.tr = s.tr ⌢⟨a⟩
+\par
+∧
+\par
+∈⃝y
+\par
+ac′
+\par
+y.wait ∧
+\par
+(y.tr = s.tr ∧b /∈y.ref ) ∨y.tr = s.tr ⌢⟨b⟩
+\end{quote}
+
+⎞ ⎠ ⎞ ⎠
+
+\begin{quote}\small\raggedright
+This process never diverges, does not terminate (y.wait), and either the trace has not changed (y.tr = s.tr) and we have an
+\par
+angelic choice of not refusing a (a /∈y.ref ) or b (b /∈y.ref ), or the trace is extended with a or b. With this, we can calculate
+\par
+the result of applying ac2p as follows.
+\par
+ac2p(a →RAD StopRAD ⊔RAD b →RAD StopRAD)
+\par
+\{Theorem 13\}
+\par
+= R
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\end{quote}
+
+¬ ac2p(false) ⊢ ac2p
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+∈⃝y
+\par
+ac′
+\par
+y.wait ∧
+\par
+(y.tr = s.tr ∧a /∈y.ref ) ∨y.tr = s.tr ⌢⟨a⟩
+\par
+∧
+\par
+∈⃝y
+\par
+ac′
+\par
+y.wait ∧
+\par
+(y.tr = s.tr ∧b /∈y.ref ) ∨y.tr = s.tr ⌢⟨b⟩
+\end{quote}
+
+⎞ ⎠ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Definition of ∈⃝y
+\par
+ac′ and ac2p\}
+\par
+= R
+\par
+⎛
+\par
+⎜⎜⎝
+\par
+true
+\par
+⊢Σ
+\par
+wait′ ∧((tr′ = tr ∧a /∈ref ′) ∨(tr′ = tr ⌢⟨a⟩))∧
+\par
+wait′ ∧((tr′ = tr ∧b /∈ref ′) ∨(tr′ = tr ⌢⟨b⟩))
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎠
+\par
+\{Predicate calculus\}
+\par
+= R(true ⊢wait′ ∧tr′ = tr ∧a /∈ref ′ ∧b /∈ref ′)
+\par
+\{Lemma 5\}
+\par
+= a →R StopR ⊔R b →R StopR
+\end{quote}
+
+The result is the least upper bound (⊔R) of the corresponding CSP processes, defined as conjunction. This is a process that cannot be expressed using the standard operators of CSP. The conjunction of non-divergent CSP processes requires the conjunction of their respective postconditions, and thus an agreement. The conjunction of the CSP processes in the example is established by the following lemma.
+
+\noindent\textbf{Lemma 5.} a →R StopR ⊔R b →R StopR = R(true ⊢tr′ = tr ∧a /∈ref ′ ∧b /∈ref ′ ∧wait′).
+
+
+In this case, both processes can only agree on the trace of events remaining unchanged, and not refusing events a and b, while waiting. This is effectively StopR but with a stronger postcondition. 2
+
+\subsubsection{From CSP to reactive angelic designs}
+The mapping in the opposite direction, from CSP processes to reactive angelic designs, is p2ac. The application of p2ac to a process P that is R-healthy can be described by the application of the functional composition of RA with p2ac to the original process P.
+
+\noindent\textbf{Theorem 14.} p2ac ◦R(P) = RA ◦p2ac(P).
+
+
+The result of applying p2ac to a reactive design is established below: p2ac can be directly applied to the pre and postcon- ditions separately, followed by A and RA.
+
+\noindent\textbf{Theorem 15.} p2ac ◦R(¬ P f f ⊢Pt f ) = RA ◦A(¬ p2ac(P f f ) ⊢p2ac(Pt f )).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+p2ac ◦R(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Theorem 14 and definition of RA\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦p2ac(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Definition of RA1 and predicate calculus\}
+\par
+= RA3 ◦RA2 ◦RA1(p2ac(¬ P f
+\par
+f ⊢Pt
+\par
+f ) ∧ac′ ̸= ∅)
+\par
+\{Theorem 72\}
+\par
+= RA3 ◦RA2 ◦RA1((¬ p2ac(P f
+\par
+f ) ⊢p2ac(Pt
+\par
+f )) ∧ac′ ̸= ∅)
+\par
+\{RA1 and RA\}
+\par
+= RA(¬ p2ac(P f
+\par
+f ) ⊢p2ac(Pt
+\par
+f ))
+\par
+\{Lemma 26\}
+\par
+= RA(¬ PBMH ◦p2ac(P f
+\par
+f ) ⊢PBMH ◦p2ac(Pt
+\par
+f ))
+\par
+\{Definition of A1\}
+\par
+= RA ◦A1(¬ p2ac(P f
+\par
+f ) ⊢p2ac(Pt))
+\par
+\{Definition of RA and Theorem 9\}
+\par
+= RA ◦A0 ◦A1(¬ p2ac(P f
+\par
+f ) ⊢p2ac(Pt))
+\par
+\{Definition of A\}
+\par
+= RA ◦A(¬ p2ac(P f
+\par
+f ) ⊢p2ac(Pt))
+\par
+2
+\end{quote}
+
+\noindent\textbf{Example 13.} As an example, we consider the CSP terminating process SkipR, defined by the following reactive design R(true ⊢tr′ = tr ∧¬ wait′). It specifies that SkipR does not diverge, since its precondition is true, and then termi- nates (¬ wait′) without engaging in any event (that is, tr′ = tr). Below, it is mapped through p2ac to a reactive angelic design.
+
+
+\begin{quote}\small\raggedright
+p2ac(SkipR) = RA ◦A(true ⊢∃y • ¬ y.wait ∧y.tr = s.tr ∧y ∈ac′)
+\end{quote}
+
+The reactive angelic design also has true as its precondition, while the postcondition asserts that there is a final state y in the set of angelic choices ac′ where the trace of events s.tr is kept unchanged and the value of the component wait is false. 2 As already said, the pair of linking functions we have considered form a Galois connection. When considering the map- ping from the original theory of reactive processes, followed by the mapping in the opposite direction, we obtain an exact correspondence.
+
+\noindent\textbf{Theorem 16.} ac2p ◦p2ac(P) = P.
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+ac2p ◦p2ac(P)
+\par
+\{Definition of ac2p\}
+\par
+= (PBMH ◦p2ac(P))[StateII(inα−ok)/s] ;A
+\par
+Π
+\par
+x : outα−ok′ • dash(s).x = x
+\par
+\{Lemma 26\}
+\par
+= p2ac(P)[StateII(inα−ok)/s] ;A
+\par
+Π
+\par
+x : outα−ok′ • dash(s).x = x
+\par
+\{Definition of p2ac\}
+\par
+=
+\par
+Σ (∃z • P[s, z/inα−ok,outα−ok′] ∧undash(z) ∈ac′)[StateII(inα−ok)/s] ;A
+\par
+x : outα−ok′ • dash(s).x = x
+\end{quote}
+
+\{Substitution\}
+
+\begin{quote}\small\raggedright
+=
+\par
+Σ (∃z • P[s, z/inα−ok,outα−ok′][StateII(inα−ok)/s] ∧undash(z) ∈ac′) ;A
+\par
+x : outα−ok′ • dash(s).x = x
+\end{quote}
+
+\{Lemma 27\}
+
+\begin{quote}\small\raggedright
+= (∃z • P[z/outα−ok′] ∧undash(z) ∈ac′) ;A
+\par
+Π
+\par
+x : outα−ok′ • dash(s).x = x
+\par
+\{Definition of ;A and substitution\}
+\par
+= ∃z • P[z/outα−ok′] ∧undash(z) ∈\{s |
+\par
+Π
+\par
+x : outα−ok′ • dash(s).x = x\}
+\par
+\{Property of sets\}
+\par
+= ∃z • P[z/outα−ok′] ∧
+\par
+Π
+\par
+x : outα−ok′ • dash(undash(z)).x = x
+\par
+\{Property of dash and undash\}
+\par
+= ∃z • P[z/outα−ok′] ∧
+\par
+Π
+\par
+x : outα−ok′ • z.x = x
+\par
+\{Lemma 28\}
+\par
+= P[z/outα−ok′][StateII(outα−ok′)/z]
+\par
+\{Lemma 27\}
+\par
+= P
+\par
+2
+\end{quote}
+
+This reassuring result establishes that our theory can accommodate the existing CSP processes, that is, those without angelic nondeterminism, appropriately. Their semantics is preserved.
+
+When considering the mapping in the opposite direction we obtain the result below.
+
+\noindent\textbf{Lemma 6.} p2ac ◦ac2p(P) = ∃ac0, y • P[ac0/ac′] ∧ac0 ⊆\{y\} ∧y ∈ac′.
+
+
+If the set of final states ac0 in P contains more than one state, then the result of p2ac ◦ac2p(P) is false, otherwise, ac0 is either a singleton, in which case ac′ is any set containing the element of ac0, or empty, in which case ac′ is arbitrary. In other words, the functional composition only preserves predicates whose set of angelic choices is either empty or a singleton, otherwise the result is false.
+
+In the following example, Lemma 6 is applied to the process in Example 12.
+
+\noindent\textbf{Example 14.}
+
+
+p2ac ◦ac2p(a →RAD StopRAD ⊔RAD b →RAD StopRAD)
+
+\begin{quote}\small\raggedright
+= RA ◦A
+\par
+true ⊢∈⃝y
+\par
+ac′(y.wait ∧y.tr = s.tr ∧a /∈y.ref ∧b /∈y.ref )
+\par
+This process results from the application of p2ac to the process in Example 12. In this case, the process is always waiting,
+\par
+keeps the trace of events unchanged, but does not refuse either a or b. This is different from the reactive angelic design
+\par
+a →RAD StopRAD ⊔RAD b →RAD StopRAD defined in Example 12.
+\par
+2
+\end{quote}
+
+If we consider the result of Lemma 6 in the context of the predicates of our theory, that is, those which are PBMH-healthy, then we obtain an inequality as established below.
+
+\noindent\textbf{Theorem 17.} Provided P is PBMH-healthy, p2ac ◦ac2p(P) ⊒P.
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+p2ac ◦ac2p(P)
+\par
+\{Lemma 6\}
+\par
+= ∃ac0, y • P[ac0/ac′] ∧ac0 ⊆\{y\} ∧y ∈ac′
+\par
+\{Property of sets\}
+\par
+= ∃ac0, y • P[ac0/ac′] ∧ac0 ⊆\{y\} ∧\{y\} ⊆ac′
+\par
+\{Predicate calculus\}
+\par
+⇒∃ac0 • P[ac0/ac′] ∧ac0 ⊆ac′
+\par
+\{Definition of PBMH\}
+\par
+= PBMH(P)
+\par
+\{Assumption: P is PBMH-healthy\}
+\par
+= P
+\par
+2
+\end{quote}
+
+This theorem, together with Theorem 16, and the closure results of Theorems 13 and 15, establishes the existence of a Galois connection between the theory of CSP and reactive angelic designs. We observe, that in general, this result also establishes a Galois connection between relations and PBMH-healthy relations.
+
+\begin{quote}\small\raggedright
+The result of Theorem 17 can be strengthened into an equality by considering the subset of reactive angelic designs that
+\par
+are A2-healthy. In other words, for reactive angelic designs, A2 characterises the same fixed points as p2ac ◦ac2p(P). For
+\par
+example, if we consider the application of A2 to the following process a →RAD StopRAD ⊔RAD b →RAD StopRAD, we obtain
+\par
+exactly the same result as in Example 14.
+\par
+(We observe, however, that, in general, A2 permits ac′ = ∅, whereas in the theory of reactive angelic designs, both
+\par
+RA1 and the mapping p2ac require ac′ not to be empty. For example, in the theory of angelic designs, the bottom of the
+\par
+lattice, which is true, is a fixed point of A2. On the other hand, the bottom of the theory of reactive angelic designs is
+\par
+RA ◦A(false ⊢true), which, on account of RA1 ensures ac′ ̸= ∅.)
+\end{quote}
+
+Theorem 18 establishes that the result of p2ac ◦ac2p(P), for a reactive angelic design P that is A2-healthy, is exactly the same reactive angelic design P.
+
+\noindent\textbf{Theorem 18.} Provided P f f and Pt f are A2-healthy, p2ac ◦ac2p ◦RA ◦A(¬ P f f ⊢Pt f ) = RA ◦A(¬ P f f ⊢Pt f ).
+
+
+In summary, when we consider the theory of A2-healthy reactive angelic designs, then we find that there is a bijection with the original theory of reactive designs. Thus this subset is isomorphic to the theory of CSP.
+
+\subsection{Operators}
+Having introduced the alphabet and the healthiness conditions of the theory of reactive angelic designs, in this section we introduce the definition of important operators of CSP in the new model. We illustrate how operators relate to their original CSP counterparts.
+
+\subsubsection{Angelic choice}
+The first operator of interest is angelic choice. Like in the theory of angelic designs, it is defined as the least upper bound operator, which is conjunction.
+
+\noindent\textbf{Definition 37.} P ⊔RAD Q ≜= P ∧Q .
+
+
+For reactive angelic designs P and Q , angelic choice can be described in terms of a pre and a postcondition as established by the following theorem. The precondition of the resulting process is the disjunction of the preconditions of P and Q , while the postcondition is the conjunction of two implications.
+
+\noindent\textbf{Theorem 19.} Provided P and Q are RAD-healthy, P ⊔RAD Q = RA ◦A(¬ P f f ∨¬ Q f f ⊢(¬ P f f ⇒Pt f ) ∧(¬ Q f f ⇒Q t f )).
+
+
+If either the precondition of P or Q holds, then the corresponding postcondition is established.
+
+The least upper bound of this theory can be related with that of CSP as follows. If we consider two CSP processes P and Q , apply p2ac followed by the least upper bound ⊔RAD and then ac2p, then we obtain the same result defined by the original least upper bound operator ⊔R of CSP as established by Theorem 20.
+
+\noindent\textbf{Theorem 20.} ac2p(p2ac(P) ⊔RAD p2ac(Q )) = P ⊔R Q .
+
+
+This is expected, since we can express every standard CSP process in the new theory of reactive angelic designs. The result in the opposite direction, however, is an inequality.
+
+\noindent\textbf{Theorem 21.} Provided that P and Q are RAD-healthy, p2ac(ac2p(P) ⊔R ac2p(Q )) ⊒P ⊔RAD Q .
+
+
+This is also expected, as ac2p collapses angelic nondeterminism, and p2ac cannot undo such effect.
+
+\subsubsection{Demonic choice}
+Similarly to internal choice in CSP, in our theory, this operator is defined using the greatest lower bound.
+
+\noindent\textbf{Definition 38.} P ⊓RAD Q ≜= P ∨Q .
+
+
+For any P and Q , their demonic choice can be described as a reactive angelic design as stated below.
+
+\noindent\textbf{Theorem 22.} Provided P and Q are RAD-healthy, P ⊓RAD Q = RA ◦A(¬ P f f ∧¬ Q f f ⊢Pt f ∨Q t f ).
+
+
+In words, the resulting precondition is the conjunction of the respective preconditions of P and Q , while the postcondition is the disjunction of the postconditions. Intuitively, in a demonic choice, divergence is avoided if both preconditions are satisfied, while either the postcondition of P or Q may be observed.
+
+The greatest lower bound of the theory of reactive angelic designs can be related with that of CSP through the pair of linking functions p2ac and ac2p. Since p2ac distributes through disjunction we can establish the following general result in Theorem 23.
+
+\noindent\textbf{Theorem 23.} p2ac(ac2p(P) ⊓R ac2p(Q )) = p2ac ◦ac2p(P) ⊓RAD p2ac ◦ac2p(Q ).
+
+
+If we consider two reactive angelic designs P and Q and apply ac2p, followed by the greatest lower bound ⊓R and then p2ac, then this result can be directly obtained by applying p2ac ◦ac2p followed by the greatest lower bound ⊓RAD. When P and Q are A2-healthy (Theorem 18) we obtain the result shown in Lemma 7.
+
+\noindent\textbf{Lemma 7.} Provided P and Q are RAD and A2-healthy, p2ac(ac2p(P) ⊓R ac2p(Q )) = P ⊓RAD Q .
+
+
+In words, for reactive angelic designs with no angelic nondeterminism, the demonic choice of our theory and that of the CSP theory are in correspondence. Since ac2p also distributes through disjunction, we can establish the following result. This means that the greatest lower bounds are in correspondence.
+
+\noindent\textbf{Theorem 24.} ac2p(p2ac(P) ⊓RAD p2ac(Q )) = P ⊓R Q .
+
+
+Finally, since the least upper bound is conjunction, and the greatest lower bound is disjunction, angelic and demonic choice distribute over each other, as expected.
+
+\subsubsection{Chaos}
+The next operator of interest is ChaosRAD, which is the bottom of the lattice of reactive angelic designs.
+
+\noindent\textbf{Definition 39.} ChaosRAD ≜= RA ◦A(false ⊢ac′ ̸= ∅).
+
+
+Its precondition is false while the postcondition requires that ac′ is not empty. As indicated previously, the postcondition can alternatively be specified as true, since both A and RA1 ensure that the design is A0-healthy. Like for every reactive angelic design, the complete behaviour is constrained by RA and thus the final states in ac′ observe the properties it enforces.
+
+Like in the original theory, if a process in a demonic choice may diverge immediately, then this is the only choice (ChaosRAD ⊓RAD P = ChaosRAD). The dual of this property is the unit law for angelic choice.
+
+\noindent\textbf{Theorem 25.} Provided P is RAD-healthy, ChaosRAD ⊔RAD P = P.
+
+
+When there is an angelic choice between diverging immediately or behaving as P, then the choice is resolved in favour of P. This is a fundamental property of an angelic choice: if possible, it avoids divergence.
+
+\subsubsection{Choice}
+\begin{quote}\small\raggedright
+The next operator we introduce in this section is ChoiceRAD, the most nondeterministic process that does not diverge.
+\par
+(This is the counterpart to Chaos in Roscoe [2]’s presentation of CSP.)
+\end{quote}
+
+\noindent\textbf{Definition 40.} ChoiceRAD ≜= RA ◦A(true ⊢ac′ ̸= ∅).
+
+
+The precondition is true while the postcondition allows any non-empty set ac′.
+
+As is discussed in Section 6.5, ChoiceRAD plays an important role in the characterisation of the non-divergent reactive angelic designs. This uses the general result below regarding the least upper bound between an arbitrary process P and ChoiceRAD.
+
+\noindent\textbf{Theorem 26.} Provided P is RAD-healthy, ChoiceRAD ⊔RAD P = RA ◦A(true ⊢Pt f ).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+ChoiceRAD ⊔RAD P
+\par
+\{Definition of ChoiceRAD\}
+\par
+= RA ◦A(true ⊢ac′ ̸= ∅) ⊔RAD P
+\par
+\{Definition of A, Lemma 15 and Theorem 3\}
+\par
+= RA ◦A(true ⊢true) ⊔RAD P
+\par
+\{Assumption: P is RAD-healthy\}
+\par
+= RA ◦A(true ⊢true) ⊔RAD RA ◦A(¬ P f
+\par
+f ⊢Pt
+\par
+f )
+\par
+\{Theorem 19\}
+\par
+= RA ◦A(true ⊢true ∧(¬ P f
+\par
+f ⇒Pt
+\par
+f ))
+\par
+\{Definition of design and predicate calculus\}
+\par
+= RA ◦A(true ⊢(ok ∧¬ P f
+\par
+f ) ⇒Pt
+\par
+f )
+\par
+\{Theorem 67\}
+\par
+= RA ◦PBMH(true ⊢(ok ∧¬ P f
+\par
+f ) ⇒Pt
+\par
+f )
+\par
+\{Lemma 16\}
+\par
+= RA(¬ PBMH(false) ⊢PBMH((ok ∧¬ P f
+\par
+f ) ⇒Pt
+\par
+f ))
+\par
+\{Lemma 22\}
+\par
+= RA(¬ PBMH(false) ⊢RA2 ◦RA1 ◦PBMH((ok ∧¬ P f
+\par
+f ) ⇒Pt
+\par
+f ))
+\par
+\{Theorems 66 and 70\}
+\par
+= RA(¬ PBMH(false) ⊢PBMH ◦RA2 ◦RA1 ◦PBMH((ok ∧¬ P f
+\par
+f ) ⇒Pt
+\par
+f ))
+\par
+\{Lemma 21\}
+\par
+= RA(¬ PBMH(false) ⊢PBMH((RA ◦A(¬ P f
+\par
+f ⊢Pt
+\par
+f ))t
+\par
+f ))
+\par
+\{Assumption: P is RAD-healthy\}
+\par
+= RA(¬ PBMH(false) ⊢PBMH(Pt
+\par
+f ))
+\par
+\{Lemma 16\}
+\par
+= RA ◦PBMH(true ⊢Pt
+\par
+f )
+\par
+\{Theorem 67\}
+\par
+= RA ◦A(true ⊢Pt
+\par
+f )
+\par
+2
+\end{quote}
+
+This result establishes that ChoiceRAD ⊔RAD P can be characterised as a reactive angelic design in which the precondition is true, while the postcondition Pt f is that of P. In other words, if P could diverge, this is no longer possible in an angelic choice with ChoiceRAD.
+
+Finally, the greatest lower bound (⊓RAD) between P and ChoiceRAD is as follows.
+
+\noindent\textbf{Theorem 27.} Provided P is RAD-healthy, ChoiceRAD ⊓RAD P = RA ◦A(¬ P f f ⊢ac′ ̸= ∅).
+
+
+The precondition of P is maintained, while the postcondition requires ac′ not to be empty. In other words, if P had the possibility to diverge, this is still the case, but if the process does not diverge, then it behaves nondeterministically like ChoiceRAD, but also does not diverge.
+
+\subsubsection{Stop}
+Like in CSP, the notion of deadlock is captured by StopRAD.
+
+\noindent\textbf{Definition 41.} StopRAD ≜= RA ◦A(true ⊢∈⃝y ac′(y.tr = s.tr ∧y.wait)).
+
+
+The precondition is true while the postcondition requires the process to be always waiting and keep the trace unchanged. Use of the ∈⃝y ac′ operator gives definitions similar to those of the original theory. An angelic choice between a process P and StopRAD is, in general, not resolved in favour of either.
+
+\noindent\textbf{Theorem 28.} Provided P is RAD-healthy,
+
+
+\begin{quote}\small\raggedright
+StopRAD ⊔RAD P = RA ◦A(true ⊢(¬ P f
+\par
+f ⇒Pt
+\par
+f ) ∧∈⃝y
+\par
+ac′(y.tr = s.tr ∧y.wait))
+\end{quote}
+
+Any divergence in P f f is avoided, and so the precondition is true. If P diverges, then the process behaves as StopRAD, otherwise there is an angelic choice between P and StopRAD as characterised by the conjunction of their postconditions. This process does not force the deadlock, but insists that it is possible.
+
+\subsubsection{Skip}
+The process that always terminates successfully is defined as SkipRAD.
+
+\noindent\textbf{Definition 42.} SkipRAD ≜= RA ◦A(true ⊢∈⃝y ac′(¬ y.wait ∧y.tr = s.tr)).
+
+
+Its precondition is true while the postcondition requires that there is a final state y in ac′ that records termina- tion (¬ y.wait) and no change in the trace of events s.tr. Similarly to the case with StopRAD, the angelic choice between a process P and SkipRAD does not resolve in favour of either.
+
+\noindent\textbf{Theorem 29.} Provided P is RAD-healthy, SkipRAD ⊔RAD P = RA ◦A(true ⊢∈⃝y ac′(¬ y.wait ∧y.tr = s.tr)) ∧(¬ P f f ⇒Pt t)).
+
+
+Again, divergence in P is avoided. If P diverges, because its precondition ¬ P f f does not hold, the angelic choice avoids that divergence behaving as SkipRAD. Otherwise, the behaviour is given by the conjunction of the postconditions of P, that is, Pt t , and SkipRAD.
+
+\noindent\textbf{Example 15.} We consider an angelic choice between termination and deadlock.
+
+
+\begin{quote}\small\raggedright
+StopRAD ⊔RAD SkipRAD
+\par
+\{Definition of StopRAD and SkipRAD\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+RA ◦A(true ⊢∈⃝y
+\par
+ac′(y.tr = s.tr ∧y.wait))
+\par
+⊔RAD
+\par
+RA ◦A(true ⊢∈⃝y
+\par
+ac′(¬ y.wait ∧y.tr = s.tr))
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Theorem 19\}
+\par
+= RA ◦A
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\end{quote}
+
+true ∨true ⊢⎛
+
+\begin{quote}\small\raggedright
+⎝
+\par
+(true ⇒∈⃝y
+\par
+ac′(y.tr = s.tr ∧y.wait))
+\par
+∧
+\par
+(true ⇒∈⃝y
+\par
+ac′(¬ y.wait ∧y.tr = s.tr))
+\end{quote}
+
+⎞ ⎠ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Predicate calculus\}
+\par
+= RA ◦A(true ⊢∈⃝y
+\par
+ac′(y.tr = s.tr ∧y.wait) ∧∈⃝y
+\par
+ac′(¬ y.wait ∧y.tr = s.tr))
+\end{quote}
+
+In this case, the choice is not resolved by either process. 2 If we map Example 15 into the original theory of CSP, then we obtain the top ⊤R of that lattice, defined as a reactive design by ⊤R = R(true ⊢false), as Lemma 8 establishes.
+
+\noindent\textbf{Lemma 8.} ac2p(StopRAD ⊔RAD SkipRAD) = ⊤R.
+
+
+This is because the result of mapping StopRAD ⊔RAD SkipRAD through ac2p insists on both waiting for an interaction and terminating. Likewise, if we map ⊤R through p2ac, the top of the lattice of reactive angelic designs is obtained. Thus, this is an example of the general strengthening indicated by Theorem 21. Although the miraculous process ⊤R is not part of the standard CSP semantics [2] it plays an important role, for example, in the characterisation of deadline operators in the context of timed versions of process calculi [37–39].
+
+\subsubsection{Sequential composition}
+Since we have a theory of non-homogeneous relations, sequential composition is given by ; Dac, previously defined in the theory of angelic designs, which is itself layered upon ;A. When considering reactive angelic designs P and Q , we obtain the following result for P ; Dac Q as a reactive angelic design.
+
+\noindent\textbf{Theorem 30.}
+
+
+P ; Dac Q = RA ◦A
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎜⎝
+\par
+¬ (RA1(P f
+\par
+f ) ;A RA1(true)) ∧¬ (RA1(Pt
+\par
+f ) ;A (¬ s.wait ∧RA2 ◦RA1(Q f
+\par
+f )))
+\par
+⊢
+\par
+RA1(Pt
+\par
+f ) ;A (s ∈ac′ ◁s.wait ▷(RA2 ◦RA1(¬ Q f
+\par
+f ⇒Q t
+\par
+f )))
+\end{quote}
+
+⎞ ⎟⎠ The precondition is the conjunction of two sequential compositions defined using ;A. The first requires that the precondition of P, that is ¬ P f f , is satisfied, by stating that it is not the case that the negation (P f f ) leads to an extension of the trace via RA1(true). The second composition requires that Pt f , the postcondition of P, satisfies the precondition of Q when s.wait is false, that is, when Q starts. RA1 and RA2 must hold for the negation of the precondition of Q . Finally, the postcondition is given by the sequential composition of the postcondition of P with a condition, where: if P is still waiting for the environment, that is, s.wait is true, then it behaves as the identity s ∈ac′, otherwise as the implication between the pre and postcondition of Q , where RA1 and RA2 are required to hold. This implication acts as a filter that eliminates final states of P that fail to satisfy the precondition of Q and yet satisfy RA1 and RA2.
+
+As an example, we consider the following result established in Lemma 9.
+
+\noindent\textbf{Lemma 9.} (StopRAD ⊔RAD SkipRAD) ; Dac ChaosRAD = StopRAD.
+
+
+In this case there is an angelic choice between deadlocking and terminating, followed by divergence. The angel avoids the divergence by choosing to deadlock. The precondition of ChaosRAD is unsatisfiable: false. Once the preceding process of the sequential composition terminates, that is, wait is false, the composition diverges. Because there is an angelic choice with the non-terminating StopRAD, the divergence is avoided.
+
+\subsubsection{Prefixing}
+Having discussed the definition of sequential composition, in this section we introduce the definition of event prefixing, which is similar to that of CSP. The prefixing of a followed by an arbitrary process P (a →RAD P) can be obtained by considering the sequential composition a →RAD SkipRAD ; P.
+
+\noindent\textbf{Definition 43.}
+
+
+\begin{quote}\small\raggedright
+a →RAD SkipRAD ≜= RA ◦A
+\par
+(
+\par
+true ⊢∈⃝y
+\par
+ac′
+\par
+(
+\par
+(y.tr = s.tr ∧a /∈y.ref ) ◁y.wait ▷y.tr = s.tr ⌢⟨a⟩
+\par
+))
+\end{quote}
+
+The precondition is true because a simple prefixing a →RAD SkipRAD cannot diverge. The postcondition is split into two cases. When the process is waiting for an interaction from the environment, that is, y.wait is true, then a is not in the set of refusals and the trace s.tr is unchanged. In the second case, the process has interacted with the environment, and so the only guarantee is that a is part of the final trace y.tr.
+
+Like for StopRAD and SkipRAD, an angelic choice between a process P and the following prefixing a →RAD SkipRAD avoids divergence as established below.
+
+\noindent\textbf{Theorem 31.} Provided P is RAD-healthy,
+
+
+a →RAD SkipRAD ⊔RAD P = RA ◦A
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝true ⊢∈⃝y
+\par
+ac′
+\par
+⎛
+\par
+⎝
+\par
+(y.tr = s.tr ∧a /∈y.ref )
+\par
+◁y.wait ▷
+\par
+(y.tr = s.tr ⌢⟨a⟩)
+\end{quote}
+
+⎞ ⎠∧(¬ P f f ⇒Pt f )
+
+⎞ ⎠ The behaviour of this process depends on that of P. If P diverges, then it behaves as a →RAD SkipRAD, otherwise there is an angelic choice between a →RAD SkipRAD and P. We consider three examples.
+
+\noindent\textbf{Example 16.} Here we have a choice between terminating and deadlocking following the event a, sequentially composed with ChaosRAD: ((a →RAD StopRAD) ⊔RAD SkipRAD) ; Dac ChaosRAD = a →RAD StopRAD. The angelic choice avoids divergence by choosing non-termination: allowing the environment to perform the event a and then deadlocking. 2
+
+
+\noindent\textbf{Example 17.} Now we have a choice between terminating or diverging upon performing the event a.
+
+
+\begin{quote}\small\raggedright
+(a →RAD SkipRAD) ⊔RAD (a →RAD ChaosRAD) = a →RAD SkipRAD
+\end{quote}
+
+The result is a process that following event a can only terminate, and thus avoids divergence. This illustrates a situation where our angelic choice operator is a counterpart to that of the refinement calculus: it resolves choices to avoid diver- gence. 2
+
+\noindent\textbf{Example 18.} If we consider an angelic choice over prefixes on different events, the result is rather different.
+
+
+\begin{quote}\small\raggedright
+(a →RAD SkipRAD) ⊔RAD (b →RAD ChaosRAD) = (a →RAD SkipRAD) ⊔RAD (b →RAD ChoiceRAD)
+\end{quote}
+
+In this case, the possibility of diverging after the event b is avoided by turning ChaosRAD into ChoiceRAD. The possibility for engaging in the event b cannot be avoided by the angel, since RA1 requires that under all circumstances no trace of events may be undone. Ideally for a counterpart to the angelic choice of the refinement calculus, it should be possible to discard any trace of events that lead to divergence. This is the motivation behind the theory of angelic processes that we discuss in Section 7. 2
+
+\subsubsection{External choice}
+An external choice P 2RAD Q , which offers the environment the choice over the events initially offered by processes P and Q , has a definition in our theory that is very similar to that in the original CSP theory.
+
+\noindent\textbf{Definition 44.} P 2RAD Q ≜= RA ◦A ( (¬ P f f ∧¬ Q f f ) ⊢∈⃝y ac′((Pt f ∧Q t f ) ◁y.tr = s.tr ∧y.wait ▷(Pt f ∨Q t f )) ) .
+
+
+The precondition is the conjunction of the preconditions of P and Q , while the postcondition is split into two cases. When the trace s.tr is unchanged and the process is waiting, the choice has not been resolved and the behaviour is given by the conjunction of the postconditions of P and Q . In this scenario, P and Q must be in agreement, and so, if there is angelic nondeterminism in P or Q , there must be an agreement on a single common state in ac′. If the choice has been made, the behaviour is given by the disjunction of the postconditions: the behaviour is that of P or Q , whichever has been chosen. Even if there is angelic nondeterminism in P or Q , there is also a requirement for an agreement on a final state, as enforced by ∈⃝y ac′. We consider, for example, an external choice involving StopRAD and a reactive angelic design P.
+
+\noindent\textbf{Theorem 32.} Provided P is RAD-healthy, P 2RAD StopRAD = RA ◦A(¬ P f f ⊢∃y • (Pt f )[\{y\}/ac′] ∧y ∈ac′).
+
+
+In this case, the angelic nondeterminism in the postcondition Pt f of P is collapsed, by requiring that there exists a state y such that Pt f holds when ac′ is a singleton, and that y is in every resulting ac′. Unlike in the original theory of CSP, StopRAD is not a unit for external choice. However, when considering the subset of reactive angelic designs corresponding to CSP processes, which are the A2-healthy, then StopRAD is a unit.
+
+\noindent\textbf{Theorem 33.} Provided P is RAD and A2-healthy, P 2RAD StopRAD = P.
+
+
+\noindent\textbf{Example 19.} Here we have an angelic choice between engaging in an event a or an event b followed by divergence, with StopRAD in an external choice.
+
+
+\begin{quote}\small\raggedright
+(a →RAD ChaosRAD ⊔RAD b →RAD ChaosRAD) 2RAD StopRAD
+\par
+=
+\end{quote}
+
+RA ◦A
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+¬ ( ∈⃝y
+\par
+ac′(s.tr ⌢⟨a⟩≤y.tr) ∧∈⃝y
+\par
+ac′(s.tr ⌢⟨b⟩≤y.tr))
+\par
+⊢
+\par
+∈⃝y
+\par
+ac′(y.wait ∧y.tr = s.tr ∧a /∈y.ref ∧b /∈y.ref )
+\end{quote}
+
+⎞ ⎠ The precondition requires that there is not a final state where the trace includes the event a or the event b. The postcon- dition states that the process is always waiting for the environment, while keeping the trace of events unchanged and not refusing either a or b. So the external choice cannot be made, as it leads to divergence. 2
+
+\subsection{Non-divergent reactive angelic designs}
+As discussed in Section 4, and as part of our approach to studying the relationship between theories, it is useful to identify the subset of non-divergent reactive angelic designs. These are processes that satisfy the following healthiness condition NDRAD defined below.
+
+\noindent\textbf{Definition 45.} NDRAD(P) = P ⊔RAD ChoiceRAD.
+
+
+This function is defined using the least upper bound of the lattice ⊔RAD and the most nondeterministic process ChoiceRAD that does not diverge. The intuition underlying NDRAD is that, for a given process P, increasing the number of final states available for angelic choice, does not actually add any new choices, unless the process P could itself diverge.
+
+\noindent\textbf{Example 20.} Here we consider the case where NDRAD is applied to the bottom of the lattice ChaosRAD: NDRAD(ChaosRAD) = ChoiceRAD. The divergence is avoided and the result is the process ChoiceRAD. 2
+
+
+\noindent\textbf{Example 21.} If instead we consider a process that is not divergent, such as SkipRAD, then NDRAD is innocuous: NDRAD(a →RAD SkipRAD) = a →RAD SkipRAD. The non-divergent process is a fixed point. 2
+
+
+As stated below, the application of NDRAD to a reactive angelic design P gives a process with the same postcondition, but precondition true. So, the resulting process is non-divergent.
+
+\noindent\textbf{Theorem 34.} Provided P is RAD-healthy, NDRAD(P) = RA ◦A(true ⊢Pt f ).
+
+
+Furthermore, Theorem 35 states that the fixed points P of NDRAD have a precondition ¬ P f f that is satisfied for every possible initial state s and set of final states ac′.
+
+\noindent\textbf{Theorem 35.} Provided P is RAD-healthy, NDRAD(P) = P ⇔∀s, ac′ • ¬ P f f .
+
+
+These complementary results confirm our intuition about the definition of NDRAD: it characterises non-divergent processes. It is used in the next section to establish the correspondence between the subset of non-divergent reactive angelic designs and non-divergent angelic processes (see Fig. 2).
+
+\section{Angelic processes}
+As discussed previously, in the theory of reactive angelic designs, as required by RA1, processes never undo the history of events. For example, ChaosRAD, which diverges immediately, guarantees that there is always a final state in ac′ where the trace of events is a suffix of the initial trace s.tr.
+
+Since angelic choice is the least upper bound and ChaosRAD the bottom of the lattice of reactive angelic designs, imme- diate divergence is avoided, if possible, in an angelic choice. However, once there is the possibility for interacting with the environment, like in the case of the process in Example 16, the possibility for performing an event followed by divergence cannot be eliminated completely, as doing so would violate RA1. This is unlike the angelic choice of the refinement calculus and the theory of angelic designs, where angelic choices leading to divergence are pruned altogether.
+
+\begin{quote}\small\raggedright
+In this section we propose a theory of angelic processes, like that of reactive angelic designs but which does not en-
+\par
+force RA1 when a process diverges. This is a departure from the norm for a theory of CSP. The main consequence is that
+\par
+divergent processes have a different semantics, where any divergence is equated with immediate divergence. For example,
+\par
+in this theory, the angelic choice a →AP ChaosAP ⊔b →AP SkipAP is resolved in favour of b →AP SkipAP as a →AP ChaosAP is
+\par
+equated with ChaosAP, where the processes of the theory of angelic processes, which we define in the following sections, are
+\par
+subscripted with AP. This result, as well as other algebraic laws of interest are established in Theorem 50 and Examples 26
+\par
+to 28. However, the subset of non-divergent processes preserves the existing semantics defined by RAD, and by extension,
+\par
+the semantics of non-divergent CSP processes.
+\end{quote}
+
+In Section 7.1 we discuss the healthiness conditions of the theory of angelic processes. In Section 7.2 we study the relationship between angelic processes and reactive angelic designs. Finally in Section 7.3 we discuss the definition of the operators and important algebraic properties.
+
+\subsection{Healthiness conditions}
+The alphabet of angelic processes is the same as that of reactive angelic designs: we have ok, ok′, s and ac′, where a State is defined with components tr, ref and wait.
+
+As with every UTP theory, we define healthiness conditions. Since we aim to define a theory like RAD, but without enforcing RA1, we revisit RAD reproduced below.
+
+\begin{quote}\small\raggedright
+RAD(P) ≜= RA1 ◦RA2 ◦RA3 ◦CSPA1 ◦CSPA2 ◦PBMH(P)
+\end{quote}
+
+If we simply remove RA1 from the functional composition, then A0 is not necessarily enforced any more, and thus successful termination does not guarantee that ac′ is not empty. Furthermore, CSPA1 is also stronger than required, since when in an unstable state, that is ¬ ok, RA1 should not be enforced. Equally, the identity IIRac and, therefore, RA3 also need to be changed, so that divergence no longer requires RA1. This leads us to the following healthiness condition AP.
+
+\noindent\textbf{Definition 46.} AP(P) ≜= RA3AP ◦RA2 ◦A ◦H1 ◦CSPA2(P).
+
+
+The healthiness condition RA3 used in RAD is replaced with RA3AP, which does not require RA1. The condition A is included in the functional composition, since it enforces both A0 and A1 (itself PBMH as previously discussed in Section 5) as required. CSPA1 is replaced with H1, since in an unstable state, that is when ¬ ok is true, RA1 is no longer enforced. Finally, CSPA2 is enforced like in RAD. The order of the composition of A with H1 and CSPA2 in the definition of AP is not relevant, as A commutes with H. This order captures the definition of an angelic design.
+
+RA3AP is introduced in the following Section 7.1.1. In Section 7.1.2 AP is explored. Finally, in Section 7.1.3 the subset of non-divergent angelic processes is characterised by another condition NDAP.
+
+\subsubsection{RA3AP}
+We define a new identity IIAP as follows.
+
+\noindent\textbf{Definition 47.} IIAP ≜= H1(ok′ ∧s ∈ac′).
+
+
+In contrast with the definition for IIRac, there is no longer a requirement for RA1 to be enforced when the process is unstable. Instead, the only guarantee is that, if the process is stable, that is, ok is true, then stability is maintained and the state is unchanged: the initial state s is in the set of final states ac′.
+
+We can now define the healthiness condition RA3AP.
+
+\noindent\textbf{Definition 48.} RA3AP(P) ≜= IIAP ◁s.wait ▷P.
+
+
+The definition of RA3AP is similar to that of RA3, but we use IIAP, instead of IIRac.
+
+\subsubsection{Angelic processes}
+As already mentioned, the theory of angelic processes is characterised by the composition of RA3AP, RA2, A, H1 and CSPA2. A result similar to Theorem 11 from the theory of reactive angelic designs can be obtained: AP processes can also be expressed in terms of a design.
+
+\noindent\textbf{Theorem 36.} AP(P) = RA3AP ◦RA2 ◦A(¬ P f f ⊢Pt f ).
+
+
+This establishes that an angelic process can also be specified as the image of a design through the functions RA3AP, RA2 and A. Since these functions are all idempotent and monotonic, and the theory of designs is a complete lattice [10], so is the theory of angelic processes.
+
+The original theory of CSP is not a theory of designs, since when ok is false, R1 must hold, unlike in the theory of designs, where H1 requires that no meaningful observations can be made about a design unless it is started, that is, unless ok is true. In contrast, since we have dropped RA1, the theory of angelic processes is a theory of angelic designs as established by the following Theorem 37.
+
+\noindent\textbf{Theorem 37.} AP(P) = ( true ◁s.wait ▷¬ RA2 ◦PBMH(P f f ) ⊢s ∈ac′ ◁s.wait ▷RA2 ◦RA1 ◦PBMH(Pt f ) ) .
+
+
+The precondition of the design has a conditional on s.wait. If the previous process has not terminated interacting with the environment, then this is simply true. Otherwise, the original precondition of P must be satisfied, and its negation must be PBMH and RA2-healthy. (We recall that, in a non-H3 design, it is actually the negation of the precondition that is established irrespective of termination.)
+
+The postcondition of an angelic process also has a conditional on s.wait. When the previous process has not terminated, the state is kept unchanged by making sure that the initial state s is in the set of final states ac′. Otherwise, the original postcondition of P holds and must be PBMH, RA2 and RA1-healthy.
+
+Although we have dropped RA1, because the postcondition requires that ac′ is not empty and we enforce RA2, this means that RA1 is enforced in the postcondition. Similarly, if the negation of the precondition imposes any particular set of final states ac′, because it must also be RA2-healthy, it will also enforce RA1. It is, therefore, only in a situation of divergence, that RA1 is no longer required to hold.
+
+\subsubsection{Non-divergent angelic processes}
+Like in the theory of reactive angelic designs, it is possible to identify the subset of non-divergent angelic processes. These are processes that satisfy the following healthiness condition NDAP. As depicted in Figs. 2 and 5 we show that the subsets of non-divergent processes and reactive angelic designs are isomorphic. This is a key result that supports the preservation of the semantics of non-divergent CSP processes.
+
+\noindent\textbf{Definition 49.} NDAP(P) ≜= ChoiceAP ⊔AP P.
+
+
+The definition of NDAP is similar to that of NDRAD, but here we use the least upper bound ⊔AP and ChoiceAP operators of the theory of angelic processes.
+
+An angelic process that is non-divergent can be characterised as shown next in Theorem 38.
+
+\noindent\textbf{Theorem 38.} Provided P is AP-healthy, ChoiceAP ⊔P = (true ⊢RA3AP ◦RA2 ◦RA1 ◦PBMH(Pt f )).
+
+
+The precondition is true, while the postcondition corresponds to that of P.
+
+Since in H3-healthy designs the precondition cannot have any free dashed variables, every non-divergent angelic pro- cess is also H3-healthy. However, not every H3-healthy angelic process is non-divergent. For example, (s.wait ⊢s ∈ac′) is H3-healthy, however, it diverges when s.wait is false.
+
+\subsection{Relationship with reactive angelic designs}
+As part of our approach for validating the theories we propose, we study the relationship between the theories of angelic processes and of reactive angelic designs. Through the links in Section 4 between reactive angelic designs and CSP, the results here also link the theories of angelic processes and of CSP.
+
+In Section 7.2.1 we discuss how reactive angelic designs can be mapped into the theory of angelic processes. In Sec- tion 7.2.3 we present the reverse mapping. Finally in Section 7.2.4 we show that the subsets of non-divergent processes of these theories are isomorphic.
+
+\subsubsection{From reactive angelic designs to angelic processes}
+As already said, angelic processes are designs, and so are H1 and H2-healthy. A reactive angelic design fails to be a design because of RA1, which prescribes a particular behaviour when ok is false. Accordingly, a reactive angelic design can be turned into an angelic process by applying H1 and removing any guarantees when ok is false. CSPA2 is basically H2 and so enforced in both theories.
+
+Below, we characterise designs obtained by applying H1 to a reactive angelic design.
+
+\noindent\textbf{Theorem 39.}
+
+
+\begin{quote}\small\raggedright
+H1 ◦RAD(P) =
+\par
+(
+\par
+true ◁s.wait ▷¬ RA1 ◦RA2 ◦PBMH(P f
+\par
+f ) ⊢RA3AP ◦RA2 ◦RA1 ◦PBMH(Pt
+\par
+f )
+\par
+)
+\end{quote}
+
+In words, the postcondition is exactly the same as that of any other angelic process, while the precondition requires, in addition, that P f f is RA1-healthy. This is a property carried over from the theory of reactive angelic designs, where the negation of the precondition must also be RA1-healthy (Lemma 23).
+
+\noindent\textbf{Example 22.} We consider the following example where H1 is applied to ChaosRAD.
+
+
+H1(ChaosRAD) = (s.wait ∨¬ RA1(true) ⊢s.wait ∧s ∈ac′)
+
+In this case, if the previous process has not terminated, that is, s.wait is true, then the state is unchanged (s is required to be in the set of final states ac′). Once the process starts, that is, s.wait is false, the design can be restated as ok ⇒ RA1(true). 2
+
+\subsubsection{Non-divergent processes}
+The application of H1 to a reactive angelic design that is non-divergent, that is NDRAD-healthy, yields a precondition that is still true, while the postcondition is that corresponding to the mapping through H1.
+
+\noindent\textbf{Lemma 10.} H1 ◦RA ◦A(true ⊢Pt f ) = (true ⊢RA3AP ◦RA2 ◦RA1 ◦PBMH(Pt f )).
+
+
+\noindent\textbf{Example 23.} We consider, for example, the mapping of the process SkipRAD through H1.
+
+
+\begin{quote}\small\raggedright
+H1(SkipRAD) = (true ⊢RA3AP ◦∈⃝y
+\par
+ac′(¬ y.wait ∧y.tr = s.tr))
+\end{quote}
+
+The original postcondition of SkipRAD is kept intact, in the context of RA3AP. 2
+
+\subsubsection{From angelic processes to reactive angelic designs}
+When considering the mapping in the opposite direction, from angelic processes to reactive angelic designs, we must ensure that RA1 is observed. In fact, the mapping we need is RA1 itself. The result of applying RA1 to an angelic process is established by Theorem 40.
+
+\noindent\textbf{Theorem 40.} RA1 ◦AP(P) = RA ◦A(¬ P f f ⊢Pt f ).
+
+
+In the reactive angelic design RA ◦A(¬ P f f ⊢Pt f ), RA1 applies to the whole angelic design.
+
+\noindent\textbf{Example 24.} Here we apply RA1 to the design of the previous Example 22.
+
+
+RA1(s.wait ∨¬ RA1(true) ⊢s.wait ∧s ∈ac′) = ChaosRAD This result shows that we obtain the original ChaosRAD of reactive angelic designs. 2 As we discuss in the next Section 7.2.4, every reactive angelic design mapped into this theory can be mapped back through RA1 to obtain a reactive angelic design.
+
+\subsubsection{Isomorphism and Galois connection}
+The discussion above suggests that every reactive angelic design can be expressed as an angelic process. If we consider the application of H1 to a reactive angelic design followed by the application of RA1, then we obtain the same reactive angelic design, as established by the following Theorem 41.
+
+\noindent\textbf{Theorem 41.} RA1 ◦H1 ◦RAD(P) = RAD(P).
+
+
+This is a fundamental result, which, together with the links between the theories of reactive angelic designs and CSP, establishes that every CSP process can be modelled as an angelic process. This follows from the fact the composition of Galois connections is also a Galois connection (Theorem 4.2.5 in [10]). When we consider the mapping in the opposite direction, however, an inequality is obtained.
+
+\noindent\textbf{Theorem 42.} H1 ◦RA1 ◦AP(P) ⊒AP(P).
+
+
+This is expected, since reactive angelic designs require RA1 in all circumstances, whereas angelic processes are designs. Thus there is a Galois connection between reactive angelic designs and angelic processes.
+
+\noindent\textbf{Example 25.} We consider the following example, where RA1 and H1 are applied to the bottom of the lattice ⊥AP = (s.wait ⊢ s ∈ac′) of angelic processes.
+
+
+\begin{quote}\small\raggedright
+H1 ◦RA1(s.wait ⊢s ∈ac′) = (s.wait ∨¬ RA1(true) ⊢s.wait ∧s ∈ac′)
+\end{quote}
+
+The result is exactly the same as that of applying H1 to ChaosRAD. This angelic process has a weaker precondition than that of the bottom ⊥AP, and so is a refinement of ⊥AP. 2 If we restrict our attention to the subset of angelic processes that are non-divergent, then Theorem 42 can be strength- ened into an equality. Therefore, the subsets of non-divergent processes of the theories of angelic processes and of reactive angelic designs are isomorphic.
+
+\noindent\textbf{Theorem 43.} H1 ◦RA1 ◦NDAP ◦AP(P) = NDAP ◦AP(P).
+
+
+In addition, if we consider the links between CSP and the theory of reactive angelic designs, and, in particular, the subset characterised by A2 and NDRAD, then we see that there is a subset corresponding exactly to non-divergent CSP processes in the theory of angelic processes.
+
+\subsection{Operators}
+In this section we present some operators of the theory of angelic processes. We also study the relationship between these operators and their counterparts as reactive angelic designs presented in Section 6.4.
+
+\subsubsection{Angelic choice}
+The angelic choice operator of this theory is also defined through the least upper bound.
+
+\noindent\textbf{Definition 50.} P ⊔AP Q ≜= P ∧Q .
+
+
+The subset of non-divergent angelic processes, characterised by NDAP, is closed under angelic choice.
+
+\noindent\textbf{Theorem 44.} Provided P and Q are NDAP-healthy, NDAP(P ⊔AP Q ) = P ⊔AP Q .
+
+
+The angelic choice of two reactive angelic designs can be equally obtained through the least upper bound.
+
+\noindent\textbf{Theorem 45.} Provided P and Q are RAD-healthy, RA1(H1(P) ⊔AP H1(Q )) = P ⊔RAD Q .
+
+
+In words, if we consider two reactive angelic designs P and Q , and after mapping them through H1 we take the least upper bound ⊔AP and apply RA1, then we obtain the same result as the least upper bound ⊔RAD of P and Q . Together with The- orem 44, this establishes that the angelic choice operator for the subset of non-divergent processes is in correspondence with that of the theory of reactive angelic designs.
+
+However, when we consider the application of H1 to the least upper bound of two angelic processes P and Q mapped through RA1, we do not obtain an equality.
+
+\noindent\textbf{Theorem 46.} Provided P and Q are AP-healthy, H1(RA1(P) ⊔RAD RA1(Q )) ⊒P ⊔AP Q .
+
+
+This is expected since the theory of angelic processes is less strict with regards to RA1.
+
+\subsubsection{Demonic choice}
+Demonic choice is defined using the greatest lower bound, which is disjunction.
+
+\noindent\textbf{Definition 51.} P ⊓AP Q ≜= P ∨Q .
+
+
+The subset of non-divergent processes is closed under demonic choice.
+
+\noindent\textbf{Theorem 47.} Provided P and Q are NDAP-healthy, NDAP(P ⊓AP Q ) = P ⊓AP Q .
+
+
+The demonic choice of two reactive angelic designs can be equally obtained through the greatest lower bound.
+
+\noindent\textbf{Theorem 48.} Provided P and Q are RAD-healthy, RA1(H1(P) ⊓AP H1(Q )) = P ⊓RAD Q .
+
+
+If we map P and Q through H1, take the greatest lower bound ⊓AP, and then apply RA1, then we obtain the greatest lower bound of P and Q . With this result, together with the closure of ⊓AP under NDAP (Theorem 47), it is possible to ascertain that the demonic choice for non-divergent processes is in correspondence in both theories. On the other hand, in general, the greatest lower bound of the theory of angelic processes cannot be replicated in the theory of reactive angelic designs.
+
+\noindent\textbf{Theorem 49.} Provided P and Q are AP-healthy, H1(RA1(P) ⊓RAD RA1(Q )) ⊒P ⊓AP Q .
+
+
+This inequality is expected, since angelic processes do not enforce RA1.
+
+\subsubsection{Divergence}
+The bottom of the lattice is ChaosAP, defined in terms of the bottom of the lattice of designs, as follows.
+
+\noindent\textbf{Definition 52.} ChaosAP ≜= AP(false ⊢true).
+
+
+ChaosAP can be explicitly described as a design as established by Lemma 11.
+
+\noindent\textbf{Lemma 11.} ChaosAP = (s.wait ⊢s ∈ac′).
+
+
+The precondition requires the component wait of the initial state s to be true, while the postcondition defines that the state is kept unchanged (by requiring s to be in ac′). As long as the previous process does not terminate, the state is kept unchanged. However, once it does terminate, then ChaosAP diverges.
+
+ChaosAP is a unit for angelic choice as established by Theorem 50.
+
+\noindent\textbf{Theorem 50.} Provided P is AP-healthy, P ⊔AP ChaosAP = P.
+
+
+In other words, if possible, in an angelic choice, divergence is avoided.
+
+The process that corresponds to ChaosRAD is ChaosCSPAP, defined through a design as shown below.
+
+\noindent\textbf{Definition 53.} ChaosCSPAP ≜= AP(¬ RA1(true) ⊢true).
+
+
+Instead of false, the precondition requires ¬ RA1(true). As already discussed, it is the negation of the precondition of a design that gives the behaviour in case of possible non-termination.
+
+This corresponds exactly to the mapping of ChaosRAD through the linking function H1.
+
+\noindent\textbf{Theorem 51.} H1(ChaosRAD) = ChaosCSPAP.
+
+
+Additionally, if we map ChaosCSPAP through RA1, we obtain the bottom of the lattice ChaosRAD.
+
+\noindent\textbf{Theorem 52.} RA1(ChaosCSPAP) = ChaosRAD.
+
+
+This follows from the general result of Theorem 41.
+
+\subsubsection{Choice}
+The most nondeterministic process that does not diverge is defined as ChoiceAP.
+
+\noindent\textbf{Definition 54.} ChoiceAP ≜= AP(true ⊢ac′ ̸= ∅).
+
+
+The precondition is true, while any non-empty set of final states ac′ is acceptable.
+
+As previously indicated, ChoiceAP is used to characterise algebraically the subset of angelic processes that are non- divergent. It is a fixed point of NDAP and, by definition, also of AP. It is the counterpart to ChoiceRAD of the theory of reactive angelic designs as established by the following Theorems 53 and 54.
+
+\noindent\textbf{Theorem 53.} H1(ChoiceRAD) = ChoiceAP.
+
+
+\noindent\textbf{Theorem 54.} RA1(ChoiceAP) = ChoiceRAD.
+
+
+Theorem 54 follows from Theorem 53 and the general result of Theorem 41.
+
+\subsubsection{Stop}
+Deadlock is modelled by StopAP, whose definition is similar to that of StopRAD.
+
+\noindent\textbf{Definition 55.} StopAP ≜= AP(true ⊢∈⃝y ac′(y.tr = s.tr ∧y.wait)).
+
+
+The postcondition states that there is a final state y in ac′ where the trace is kept unchanged and the process is always waiting. This definition can be obtained by applying H1 to StopRAD.
+
+\noindent\textbf{Theorem 55.} H1(StopRAD) = StopAP.
+
+
+Similarly, StopRAD can be obtained by applying RA1 to StopAP.
+
+\noindent\textbf{Theorem 56.} RA1(StopAP) = StopRAD.
+
+
+This is expected, since StopAP is a non-divergent angelic process.
+
+\subsubsection{Skip}
+The process that always terminates successfully is characterised by SkipAP.
+
+\noindent\textbf{Definition 56.} SkipAP ≜= AP(true ⊢∈⃝y ac′(y.tr = s.tr ∧¬ y.wait)).
+
+
+The precondition is true, while the postcondition states that there is a final state y in ac′ where the trace of events is kept unchanged and the component wait is false. SkipAP is in correspondence with SkipRAD of the theory of reactive angelic designs as established by the following Theorems 57 and 58.
+
+\noindent\textbf{Theorem 57.} H1(SkipRAD) = SkipAP.
+
+
+\noindent\textbf{Theorem 58.} RA1(SkipAP) = SkipRAD.
+
+
+These results are expected since SkipAP and SkipRAD are both non-divergent processes.
+
+\subsubsection{Sequential composition}
+For angelic processes, sequential composition is also ; Dac. When we consider angelic processes P and Q , we have the result below, which is similar to that obtained for reactive angelic designs (Theorem 30).
+
+\noindent\textbf{Theorem 59.} Provided P and Q are AP-healthy,
+
+
+P ; Dac Q = AP
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎜⎝
+\par
+¬ (P f
+\par
+f ;A true) ∧¬ (RA1(Pt
+\par
+f ) ;A (¬ s.wait ∧RA2(Q f
+\par
+f )))
+\par
+⊢
+\par
+RA1(Pt
+\par
+f ) ;A (s ∈ac′ ◁s.wait ▷RA2(¬ Q f
+\par
+f ⇒RA1(Q t
+\par
+f )))
+\end{quote}
+
+⎞ ⎟⎠ The differences are in that RA1 is no longer applied to P f f and Q f f , the negation of the preconditions of P and Q , respec- tively. If P may diverge, then the result is the bottom of the lattice ChaosAP. Similarly, since the precondition of Q does not need to observe RA1, if Q diverges, then the sequential composition also behaves like ChaosAP once P has finished interacting with the environment.
+
+Thus, in our theory of angelic processes, ; Dac is a sequential composition operator that behaves differently to that of CSP. It can back propagate the divergence of Q through P, irrespective of other interactions that happen in P, if eventually P terminates and Q takes over.
+
+\noindent\textbf{Example 26.} We consider the following example: (StopAP ⊔AP SkipAP) ; Dac ChaosAP = StopAP. In this case, the angel avoids the divergence of ChaosAP by resolving the choice in favour of deadlock. This is similar to the behaviour in the theory of reactive angelic designs, since StopAP can prevent ChaosAP from ever being reached. 2
+
+
+In general, the result of applying RA1 to the sequential composition of two reactive angelic designs P and Q mapped through H1 is not equivalent to sequentially composing these two processes.
+
+\noindent\textbf{Theorem 60.} Provided P and Q are RAD-healthy, RA1(H1(P) ; Dac H1(Q )) ⊑P ; Dac Q .
+
+
+This is because the possibility to diverge in Q , in the theory of angelic processes, can lead to immediate divergence, as already discussed. Thus, when the sequential composition of H1(P) and H1(Q ) is mapped back through RA1, there is a weakening. Similarly, the reverse mapping through H1 of the sequential composition of two angelic processes P and Q mapped through RA1 is a refinement of the sequential composition of P and Q , as established by Theorem 61.
+
+\noindent\textbf{Theorem 61.} Provided P and Q are AP-healthy, H1(RA1(P) ; Dac RA1(Q )) ⊒P ; Dac Q .
+
+
+\begin{quote}\small\raggedright
+This is due to the fact that the notions of divergence in the two theories are different. In a sequential composition of P
+\par
+with the bottom of the lattice ChaosAP, the result is also ChaosAP. If we map ChaosAP through RA1, the result is ChaosRAD
+\par
+(Theorem 52), which when sequentially composed after the process RA1(P), still preserves the history of events in P. On
+\par
+the other hand, the corresponding process in the theory of angelic processes does not; hence, there is a strengthening.
+\end{quote}
+
+However, if we consider the subset of non-divergent reactive angelic designs, characterised by NDRAD, then Theorem 60 can be strengthened into an equality.
+
+\noindent\textbf{Theorem 62.} Provided P and Q are RAD and NDRAD-healthy, RA1(H1(P) ; Dac H1(Q )) = P ; Dac Q .
+
+
+In addition, the set of non-divergent angelic processes characterised by NDAP is closed under the ; Dac operator, as estab- lished by the following Theorem 63.
+
+\noindent\textbf{Theorem 63.} Provided P and Q are AP and NDAP-healthy, NDAP(P ; Dac Q ) = P ; Dac Q .
+
+
+Thus, as long as P and Q are non-divergent, ; Dac behaves exactly in the same way as in the theory of reactive angelic de- signs. By extension, this also applies to the subset of A2 processes, which do not exhibit angelic nondeterminism. Therefore, it also applies to the subset of non-divergent CSP processes. Proof of closure for angelic processes that are not necessarily non-divergent, including proofs for closure of other operators, is available in [35].
+
+\subsubsection{Prefixing}
+Similarly to the previous non-divergent processes, event prefixing has a definition similar to that of a →RAD SkipRAD in the theory of reactive angelic designs.
+
+\noindent\textbf{Definition 57.} a →AP SkipAP ≜= AP(true ⊢∈⃝y ac′((y.tr = s.tr ∧a /∈y.ref ) ◁y.wait ▷(y.tr = s.tr ⌢⟨a⟩))).
+
+
+The postcondition is like that of the following reactive angelic design a →RAD SkipRAD (Definition 43). The correspondence between a →AP SkipAP and a →RAD SkipRAD is established by Lemmas 12 and 13.
+
+\noindent\textbf{Lemma 12.} H1(a →RAD SkipRAD) = a →AP SkipAP.
+
+
+\noindent\textbf{Lemma 13.} RA1(a →AP SkipAP) = a →RAD SkipRAD.
+
+
+\noindent\textbf{Example 27.} In order to illustrate the behaviour of prefixing in the presence of divergence in the theory of angelic processes, we consider the following example: a →AP ChaosAP = ChaosAP.
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+a →AP ChaosAP
+\par
+\{Definition of ChaosAP and prefixing (Theorem T.6.4.23 in [35])\}
+\par
+= AP
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\par
+¬ (∃y • ¬ y.wait ∧y.tr = s.tr ⌢⟨a⟩∧(RA2 ◦PBMH(true))[y/s])
+\par
+⊢
+\end{quote}
+
+∃y •
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+(y.tr = s.tr ∧a /∈y.ref ∧y ∈ac′)
+\par
+◁y.wait ▷
+\par
+(y.tr = s.tr ⌢⟨a⟩∧RA2 ◦RA1 ◦PBMH(true)[y/s])
+\end{quote}
+
+⎞ ⎠ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Theorem 71\}
+\par
+= AP
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\par
+¬ (∃y • ¬ y.wait ∧y.tr = s.tr ⌢⟨a⟩∧(RA2 ◦PBMH(true))[y/s])
+\par
+⊢
+\end{quote}
+
+∃y •
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+(y.tr = s.tr ∧a /∈y.ref ∧y ∈ac′)
+\par
+◁y.wait ▷
+\par
+(y.tr = s.tr ⌢⟨a⟩∧RA1 ◦RA2 ◦PBMH(true)[y/s])
+\end{quote}
+
+⎞ ⎠ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Definition of PBMH and RA2\}
+\par
+= AP
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\par
+¬ (∃y • ¬ y.wait ∧y.tr = s.tr ⌢⟨a⟩∧(true)[y/s])
+\par
+⊢
+\end{quote}
+
+∃y •
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+(y.tr = s.tr ∧a /∈y.ref ∧y ∈ac′)
+\par
+◁y.wait ▷
+\par
+(y.tr = s.tr ⌢⟨a⟩∧RA1(true)[y/s])
+\end{quote}
+
+⎞ ⎠ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Substitution and predicate calculus\}
+\par
+= AP
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\end{quote}
+
+false ⊢ ∃y •
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+(y.tr = s.tr ∧a /∈y.ref ∧y ∈ac′)
+\par
+◁y.wait ▷
+\par
+(y.tr = s.tr ⌢⟨a⟩∧RA1(true)[y/s])
+\end{quote}
+
+⎞ ⎠ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Definition of design and predicate calculus\}
+\par
+= AP(false ⊢true)
+\par
+\{Definition of ChaosAP\}
+\par
+= ChaosAP
+\par
+2
+\end{quote}
+
+In this case, the potential for divergence after performing the event a leads to immediate divergence. If, instead, we sequen- tially compose prefixing on the event a with ChaosCSPAP, the behaviour is different.
+
+\noindent\textbf{Lemma 14.} a →AP ChaosCSPAP = AP(¬ ∈⃝y ac′(s.tr ⌢⟨a⟩ ≤y.tr) ⊢∈⃝y ac′(y.wait ∧y.tr = s.tr ∧a /∈y.ref )).
+
+
+This mirrors the behaviour of a →RAD ChaosRAD of the theory of reactive angelic designs, since the process ChaosCSPAP corresponds to ChaosRAD and does not allow the occurrence of a to be backtracked to avoid the divergence that follows. 2
+
+\noindent\textbf{Example 28.} Finally, we revisit the choice in Example 18 in the theory of angelic processes.
+
+
+a →AP ChaosAP ⊔AP b →AP SkipAP = b →AP SkipAP Now, the possibility for divergence is avoided altogether, and the result is the prefixing on b. As required, the angelic choice can avoid processes that may lead to divergence, a property that is not observed in the theory of reactive angelic designs. 2 In summary, because we do not adopt RA1 as a healthiness condition, an angelic choice can discard traces of events leading to divergence. The result is a theory of angelic designs: a complete lattice whose bottom ChaosAP is not the Chaos of CSP. It is a process that behaves arbitrarily, and may even undo the history of interactions. More importantly, in an angelic choice involving other interactions, it becomes possible for an angelic choice to undo the history of events, if necessary, and avoid divergence. This is much closer in spirit to the angelic choice of the refinement calculus.
+
+\section{Conclusions}
+In general, angelic nondeterminism enables a high degree of abstraction in the context of formal models. Its charac- terisation in the context of process algebras, such as CSP has, however, to the best of our knowledge, been elusive. The existing approaches have either considered notions of angelic nondeterminism different from that of refinement calculi [2], or different CSP semantics [7].
+
+Angelic nondeterminism has traditionally been studied in the context of theories of correctness for sequential computa- tions, such as the refinement calculus [4,5,3], where it is characterised as the least upper bound of the lattice of monotonic predicate transformers. Isomorphic models include Rewitzky [11]’s binary multirelations, which is the foundation of our approach.
+
+\begin{quote}\small\raggedright
+The work presented in this paper is the foundation for the development of process algebras with angelic nondeterminism
+\par
+in the wider context of state-rich reactive systems. Our approach has focused mainly on CSP, but because we use the UTP,
+\par
+our results are applicable to other process calculi. This may include, for example, process algebras like rTiMo [40] and
+\par
+CSP\# [41], which have also been given UTP semantics [42,43]. Event-based modelling languages may also benefit from the
+\par
+inclusion of angelic choice as a specification construct. SystemC, for example, has a UTP semantics [44] that could make our
+\par
+results also applicable.
+\end{quote}
+
+While we have studied a number of CSP operators, an interesting avenue for future work is the treatment of other operators, such as hiding and parallel composition. (Recursion can be treated in a similar way to other UTP theories as the weakest fixed point.) We expect that, for many operators, the use of our lifting operator ∈⃝y ac′ is likely to be useful and give rise to definitions similar to those in the original theory of CSP. Input synchronisations can typically be treated through replicated external choices, although in the case of infinite sets this may require an adequate treatment of variables, following, for example, the definition for input prefixing in Circus [9, p. 37]. A definition for parallel composition, using the parallel by merge approach [10] will require support for renaming state records.
+
+Furthermore, the algebraic properties of many of the operators have yet to be fully explored. For example, in the case of the external choice operator, there are other alternative and plausible definitions that preserve the CSP semantics, whose algebraic properties, in the context of processes with angelic nondeterminism, are different. In the case of hiding, and similarly to the case of sequential composition, we hypothesize that angelic choice is likely not to be distributive, however future work is necessary in order to propose and establish further laws. A related, and interesting, path for future work is the study of the encoding of additional healthiness conditions [10,45] of CSP and whether the addition of angelic choice may be useful to enable or simplify the algebraic specification of these.
+
+\begin{quote}\small\raggedright
+From a practitioner’s point of view, a theory becomes significantly more useful once there is a toolkit. There may be dif-
+\par
+ferent approaches for tackling this aspect. For instance, one approach could involve the mechanisation of our theories using
+\par
+a theorem prover. This would not only help practitioners, but also help further validate our theories, proofs and examples.
+\par
+Approaches for mechanising UTP theories include those of Foster et al. [46] and Feliachi et al. [47] using Isabelle/HOL, Zeyda
+\par
+and Cavalcanti [48] and Oliveira [9] using ProofPower/Z, and Butterfield [49].
+\end{quote}
+
+In summary, we have now presented the first extension of CSP that includes a notion of angelic nondeterminism compat- ible with that of refinement calculi. It is a solid foundation, for the extension of other process algebra for refinement, and for the additional exploration of algebra, techniques, and applications of angelic nondeterminism in the context of concurrent and reactive models.
+
+\section*{Acknowledgements}
+\begin{quote}\small\raggedright
+The authors are grateful to the UK EPSRC (Grants 1134608, EP/H017461/1 and EP/M025756/1) for funding this work, and
+\par
+to Andrew Butterfield, Detlef Plump, and Steve Schneider for their comments on Pedro Ribeiro’s PhD thesis whose results
+\par
+are described here.
+\end{quote}
+
+\appendix
+\section{Proofs}
+Here we include results supporting proofs shown above. In particular, Appendix A.1 contains results about the healthi- ness conditions of angelic designs, while Appendix A.2 contains results about the healthiness conditions of reactive angelic designs. Appendix A.3 contains results pertaining to the linking functions, while Appendix A.4 contains lemmas about sub- stitutions with record states. As mentioned before, proofs of results not explicitly included here can be found in [35].
+
+\subsection{Angelic designs}
+\noindent\textbf{Lemma 15.} PBMH(ac′ ̸= ∅) = ac′ ̸= ∅.
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+PBMH(ac′ ̸= ∅)
+\par
+\{Definition of PBMH\}
+\par
+= ∃ac0 • ac0 ̸= ∅∧ac0 ⊆ac′
+\par
+\{Property of sets\}
+\par
+= ac′ ̸= ∅
+\par
+2
+\end{quote}
+
+\noindent\textbf{Theorem 64.} H1 ◦PBMH(P) = PBMH ◦H1(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+PBMH ◦H1(P)
+\par
+\{Definition of H1 and predicate calculus\}
+\par
+= PBMH(¬ ok ∨P)
+\par
+\{Distributivity of PBMH\}
+\par
+= PBMH(¬ ok) ∨PBMH(P)
+\par
+\{Definition of PBMH\}
+\par
+= ¬ ok ∨PBMH(P)
+\par
+\{Predicate calculus\}
+\par
+= ok ⇒PBMH(P)
+\par
+\{Definition of H1\}
+\par
+= H1 ◦PBMH(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Theorem 65.}
+
+
+H2 ◦PBMH(P) = PBMH ◦H2(P).
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+H2 ◦PBMH(P)
+\par
+\{Definition of H2 (J-split)\}
+\par
+= PBMH(P) ; ((ok ⇒ok′) ∧v′ = v)
+\par
+\{Definition of PBMH\}
+\par
+= (P ; ac ⊆ac′ ∧v′ = v) ; ((ok ⇒ok′) ∧v′ = v)
+\par
+\{Composition is associative\}
+\par
+= P ; ((ac ⊆ac′ ∧v′ = v) ; ((ok ⇒ok′) ∧v′ = v))
+\par
+\{Lemma L.E.6.1 in [35]\}
+\par
+= P ; (((ok ⇒ok′) ∧v′ = v) ; (ac ⊆ac′ ∧v′ = v))
+\par
+\{Composition is associative\}
+\par
+= (P ; ((ok ⇒ok′) ∧v′ = v)) ; (ac ⊆ac′ ∧v′ = v)
+\par
+\{Definition of PBMH\}
+\par
+= PBMH(P ; ((ok ⇒ok′) ∧v′ = v))
+\par
+\{Definition of H2\}
+\par
+= PBMH ◦H2(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 16.} PBMH(P ⊢Q ) = (¬ PBMH(¬ P) ⊢PBMH(Q )).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+PBMH(P ⊢Q )
+\par
+\{Definition of design\}
+\par
+= PBMH((ok ∧P) ⇒(Q ∧ok′))
+\par
+\{Predicate calculus\}
+\par
+= PBMH(¬ ok ∨¬ P ∨(Q ∧ok′))
+\par
+\{Distributivity of PBMH\}
+\par
+= PBMH(¬ ok) ∨PBMH(¬ P) ∨PBMH(Q ∧ok′)
+\par
+\{Definition of PBMH\}
+\par
+= ¬ ok ∨PBMH(¬ P) ∨PBMH(Q ∧ok′)
+\par
+\{Definition of PBMH\}
+\par
+= ¬ ok ∨PBMH(¬ P) ∨(PBMH(Q ) ∧ok′)
+\par
+\{Predicate calculus\}
+\par
+= (ok ∧¬ PBMH(¬ P)) ⇒(PBMH(Q ) ∧ok′)
+\par
+\{Definition of design\}
+\par
+= (¬ PBMH(¬ P) ⊢PBMH(Q ))
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 17.} A2(P ⊢Q ) = (¬ A2(¬ P) ⊢A2(Q )).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+A2 ◦A(P ⊢Q )
+\par
+\{Definition of design\}
+\par
+= A2((ok ∧P) ⇒(Q ∧ok′))
+\par
+\{Predicate calculus\}
+\par
+= A2(¬ ok ∨¬ P ∨(Q ∧ok′))
+\par
+\{Distributivity of A2\}
+\par
+= A2(¬ ok) ∨A2(¬ P) ∨(A2(Q ) ∧ok′)
+\par
+\{Definition of A2\}
+\par
+= ¬ ok ∨A2(¬ P) ∨(A2(Q ) ∧ok′)
+\par
+\{Predicate calculus\}
+\par
+= (ok ∧¬ A2(¬ P)) ⇒(A2(Q ) ∧ok′)
+\par
+\{Definition of design\}
+\par
+= (¬ A2(¬ P) ⊢A2(Q ))
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 18.} Provided ok′ and ac′ are not free in e, A(P)[e/s] = A(P[e/s]).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+A(P)[e/s]
+\par
+\{Definition of A\}
+\par
+= (A0 ◦PBMH(P))[e/s]
+\par
+\{Lemma L.C.1.1 in [35]\}
+\par
+= A0 ◦(PBMH(P))[e/s]
+\par
+\{Lemma L.E.5.2 in [35]\}
+\par
+= A0 ◦PBMH(P[e/s])
+\par
+\{Definition of A\}
+\par
+= A(P[e/s])
+\par
+2
+\end{quote}
+
+\subsection{Reactive angelic designs}
+\noindent\textbf{Theorem 66.} PBMH ◦RA2 ◦PBMH(P) = RA2 ◦PBMH(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+PBMH ◦RA2 ◦PBMH(P)
+\par
+\{Definition of PBMH\}
+\par
+= PBMH ◦RA2(∃ac0 • P[ac0/ac′] ∧ac0 ⊆ac′)
+\par
+\{Definition of RA2\}
+\par
+= PBMH
+\par
+⎛
+\par
+⎝
+\par
+(∃ac0 • P[ac0/ac′] ∧ac0 ⊆ac′)
+\par
+s ⊕\{tr ↦→⟨⟩\}
+\par
+\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}
+\par
+s
+\par
+ac′
+\par
+⎞
+\par
+⎠
+\par
+\{Substitution\}
+\par
+= PBMH
+\par
+Σ ∃ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧ac0 ⊆\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}
+\end{quote}
+
+\{Definition of PBMH\}
+
+\begin{quote}\small\raggedright
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac1,ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧ac0 ⊆\{z | z ∈ac1 ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}
+\par
+∧ac1 ⊆ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Definition of subset inclusion\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac1,ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧∀x • x ∈ac0 ⇒x ∈\{z | z ∈ac1 ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}
+\par
+∧ac1 ⊆ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Property of sets\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac1,ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧∀x • x ∈ac0 ⇒∃z • z ∈ac1 ∧s.tr ≤z.tr ∧x = z ⊕\{tr ↦→z.tr −s.tr\}
+\par
+∧ac1 ⊆ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Lemma L.G.1.8 in [35]\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac1,ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧∀x • x ∈ac0 ⇒x ⊕\{tr ↦→s.tr ⌢x.tr\} ∈ac1
+\par
+∧ac1 ⊆ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Lemma L.E.4.13 in [35]\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧
+\par
+∀x • x ∈ac0 ⇒(x ⊕\{tr ↦→s.tr ⌢x.tr\}) ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Lemma L.G.1.8 in [35]\}
+\par
+=
+\par
+Σ
+\par
+∃ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧∀x • x ∈ac0 ⇒∃z • z ∈ac′ ∧s.tr ≤z.tr ∧x = z ⊕\{tr ↦→z.tr −s.tr\}
+\end{quote}
+
+\{Property of sets\}
+
+\begin{quote}\small\raggedright
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac0 • P[ac0/ac′][s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+∧
+\par
+ac0 ⊆\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Substitution\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+(∃ac0 • P[ac0/ac′] ∧ac0 ⊆ac′)
+\par
+s ⊕\{tr ↦→⟨⟩\}
+\par
+\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}
+\par
+s
+\par
+ac′
+\par
+⎞
+\par
+⎠
+\par
+\{Definition of RA2\}
+\par
+= RA2(∃ac0 • P[ac0/ac′] ∧ac0 ⊆ac′)
+\par
+\{Definition of PBMH\}
+\par
+= RA2 ◦PBMH(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Theorem 67.} RA ◦A(P) = RA ◦PBMH(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RA ◦A(P)
+\par
+\{Definition of RA and A\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦A0 ◦A1(P)
+\par
+\{A1 is PBMH\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦A0 ◦PBMH(P)
+\par
+\{Theorem 9\}
+\par
+= RA3 ◦RA2 ◦RA1 ◦PBMH(P)
+\par
+\{Definition of RA\}
+\par
+= RA ◦PBMH(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Theorem 68.} RA3 ◦RA1(P) = RA3 ◦RA1(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RA1 ◦RA3(P)
+\par
+\{Definition of RA3\}
+\par
+= RA1(IIRac ◁s.wait ▷P)
+\par
+\{Lemma L.G.1.15 in [35]\}
+\par
+= RA1(IIRac) ◁s.wait ▷RA1(P)
+\par
+\{Theorem T.G.3.1 in [35]\}
+\par
+= IIRac ◁s.wait ▷RA1(P)
+\par
+\{Definition of RA3\}
+\par
+= RA3 ◦RA1(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Theorem 69.} RA2 ◦RA3(P) = RA3 ◦RA2(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RA2 ◦RA3(P)
+\par
+\{Definition of RA3\}
+\par
+= RA2(IIRac ◁s.wait ▷P)
+\par
+\{Lemma L.G.2.6 in [35]\}
+\par
+= RA2(IIRac) ◁s.wait ▷RA2(P)
+\par
+\{Theorem T.G.3.2 in [35]\}
+\par
+= IIRac ◁s.wait ▷RA2(P)
+\par
+\{Definition of RA3\}
+\par
+= RA3 ◦RA2(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 19.} RA3(P) = RA3(P f ).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RA3(P)
+\par
+\{Definition of RA3\}
+\par
+= (IIRac ◁s.wait ▷P)
+\par
+\{Definition of conditional and predicate calculus\}
+\par
+= (IIRac ◁s.wait ▷(¬ s.wait ∧P))
+\par
+\{Predicate calculus\}
+\par
+= (IIRac ◁s.wait ▷(s.wait = false ∧P))
+\par
+\{Leibniz substitution\}
+\par
+= (IIRac ◁s.wait ▷(s.wait = false ∧P[s ⊕\{wait ↦→false\}/s]))
+\par
+\{Predicate calculus\}
+\par
+= (IIRac ◁s.wait ▷P[s ⊕\{wait ↦→false\}/s])
+\par
+\{Definition of RA3\}
+\par
+= RA3(P[s ⊕\{wait ↦→false\}/s])
+\par
+\{Substitution abbreviation\}
+\par
+= RA3(P f )
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 20.} (RA ◦A(¬ P f f ⊢Pt f )) f f = RA2 ◦RA1 ◦PBMH(¬ ok ∨P f f ).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+(RA ◦A(¬ P f
+\par
+f ⊢Pt
+\par
+f )) f
+\par
+f
+\par
+\{Lemma L.G.4.7 in [35]\}
+\par
+= RA2 ◦RA1 ◦PBMH(¬ ok ∨P f
+\par
+f ∨(Pt
+\par
+f ∧false))
+\par
+\{Predicate calculus\}
+\par
+= RA2 ◦RA1 ◦PBMH(¬ ok ∨P f
+\par
+f )
+\par
+2
+\end{quote}
+
+\noindent\textbf{Theorem 70.} PBMH ◦RA1 ◦PBMH(P) = RA1 ◦PBMH(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+PBMH ◦RA1 ◦PBMH(P)
+\par
+\{Definition of RA1\}
+\par
+= PBMH
+\par
+⎛
+\par
+⎝
+\par
+PBMH(P)[\{z | z ∈ac′ ∧s.tr ≤z.tr\}/ac′]
+\par
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Definition of PBMH\}
+\par
+= PBMH
+\par
+⎛
+\par
+⎝
+\par
+(∃ac0 • P[ac0/ac′] ∧ac0 ⊆ac′)[\{z | z ∈ac′ ∧s.tr ≤z.tr\}/ac′]
+\par
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Substitution\}
+\par
+= PBMH
+\par
+⎛
+\par
+⎝
+\par
+(∃ac0 • P[ac0/ac′] ∧ac0 ⊆\{z | z ∈ac′ ∧s.tr ≤z.tr\})
+\par
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Property of sets\}
+\par
+= PBMH
+\par
+⎛
+\par
+⎝
+\par
+(∃ac0 • P[ac0/ac′] ∧∀x • x ∈ac0 ⇒(x ∈ac′ ∧s.tr ≤x.tr))
+\par
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Predicate calculus\}
+\par
+= PBMH
+\par
+⎛
+\par
+⎜⎜⎝
+\par
+∃ac0 •
+\par
+⎛
+\par
+⎝
+\par
+P[ac0/ac′] ∧(∀x • x ∈ac0 ⇒x ∈ac′)
+\par
+∧
+\par
+(∀x • x ∈ac0 ⇒s.tr ≤x.tr)
+\end{quote}
+
+⎞ ⎠∧ ∃z • s.tr ≤z.tr ∧z ∈ac′ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎠
+\par
+\{Definition of PBMH\}
+\par
+= ∃ac1 •
+\par
+⎛
+\par
+⎜⎜⎝
+\par
+∃ac0 •
+\par
+⎛
+\par
+⎝
+\par
+P[ac0/ac′] ∧(∀x • x ∈ac0 ⇒x ∈ac′)
+\par
+∧
+\par
+(∀x • x ∈ac0 ⇒s.tr ≤x.tr)
+\end{quote}
+
+⎞ ⎠∧ ∃z • s.tr ≤z.tr ∧z ∈ac′ ⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎠[ac1/ac′] ∧ac1 ⊆ac′
+\par
+\{Substitution\}
+\par
+= ∃ac1 •
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\end{quote}
+
+∃ac0 •
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+P[ac0/ac′] ∧(∀x • x ∈ac0 ⇒x ∈ac1)
+\par
+∧
+\par
+(∀x • x ∈ac0 ⇒s.tr ≤x.tr)
+\end{quote}
+
+⎞ ⎠
+
+\begin{quote}\small\raggedright
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac1
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+∧ac1 ⊆ac′
+\par
+\{Predicate calculus\}
+\par
+=
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\end{quote}
+
+∃ac0 •
+
+\begin{quote}\small\raggedright
+⎛
+\par
+⎝
+\par
+P[ac0/ac′] ∧(∀x • x ∈ac0 ⇒x ∈ac′)
+\par
+∧
+\par
+(∀x • x ∈ac0 ⇒s.tr ≤x.tr)
+\end{quote}
+
+⎞ ⎠
+
+\begin{quote}\small\raggedright
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Predicate calculus\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac0 • P[ac0/ac′] ∧(∀x • x ∈ac0 ⇒(x ∈ac′ ∧s.tr ≤x.tr))
+\par
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Property of sets\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+∃ac0 • P[ac0/ac′] ∧ac0 ⊆\{z | z ∈ac′ ∧s.tr ≤z.tr\}
+\par
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Substitution\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+(∃ac0 • P[ac0/ac′] ∧ac0 ⊆ac′)[\{z | z ∈ac′ ∧s.tr ≤z.tr\}/ac′]
+\par
+∧
+\par
+∃z • s.tr ≤z.tr ∧z ∈ac′
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Definition of PBMH\}
+\par
+= PBMH(P)[\{z | z ∈ac′ ∧s.tr ≤z.tr\}/ac′] ∧∃z • s.tr ≤z.tr ∧z ∈ac′
+\par
+\{Definition of RA1\}
+\par
+= RA1 ◦PBMH(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Theorem 71.} RA2 ◦RA1(P) = RA1 ◦RA2(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RA2 ◦RA1(P)
+\par
+\{Definition of RA2\}
+\par
+= RA1(P)[s ⊕\{tr ↦→⟨⟩\},\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/s,ac′]
+\par
+\{Definition of RA1\}
+\par
+=
+\par
+(
+\end{quote}
+
+P ∧ac′ ̸= ∅
+
+\begin{quote}\small\raggedright
+)
+\par
+[\{z | z ∈ac′ ∧s.tr ≤z.tr\}/ac′]
+\par
+[s ⊕\{tr ↦→⟨⟩\},\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/s,ac′]
+\par
+\{Substitution of s\}
+\par
+=
+\par
+Σ
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s]∧
+\par
+ac′ ̸= ∅
+\par
+[\{z | z ∈ac′ ∧(s ⊕\{tr ↦→⟨⟩\}).tr ≤z.tr\}/ac′]
+\par
+[\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+\{Value of state component tr\}
+\par
+=
+\par
+Σ
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s]∧
+\par
+ac′ ̸= ∅
+\par
+[\{z | z ∈ac′ ∧⟨⟩≤z.tr\}/ac′]
+\par
+[\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+\{Property of sequence prefixing\}
+\par
+=
+\par
+Σ
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s]∧
+\par
+ac′ ̸= ∅
+\par
+[\{z | z ∈ac′\}/ac′]
+\par
+[\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+\{Property of sets\}
+\par
+=
+\par
+Σ
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s]∧
+\par
+ac′ ̸= ∅
+\par
+[ac′/ac′]
+\par
+[\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+\{Property of substitution\}
+\par
+=
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s] ∧ac′ ̸= ∅
+\par
+[\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+\{Substitution\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s][\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+∧
+\par
+\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\} ̸= ∅
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Property of sets\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s][\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+∧
+\par
+∃y, z • z ∈ac′ ∧s.tr ≤z.tr ∧y = z ⊕\{tr ↦→z.tr −s.tr\}
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{One-point rule\}
+\par
+=
+\par
+⎛
+\par
+⎝
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s][\{z | z ∈ac′ ∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}\}/ac′]
+\par
+∧
+\par
+∃z • z ∈ac′ ∧s.tr ≤z.tr
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎠
+\par
+\{Property of sets\}
+\par
+=
+\par
+⎛
+\par
+⎜⎜⎝
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+z
+\par
+z ∈\{z | z ∈ac′ ∧s.tr ≤z.tr\}
+\par
+∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}
+\par
+/ac′
+\par
+∧
+\par
+∃z • z ∈ac′ ∧s.tr ≤z.tr
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎠
+\par
+\{Property of substitution\}
+\par
+=
+\par
+⎛
+\par
+⎜⎜⎜⎜⎝
+\par
+P[s ⊕\{tr ↦→⟨⟩\}/s]
+\par
+z
+\par
+z ∈ac′
+\par
+∧s.tr ≤z.tr • z ⊕\{tr ↦→z.tr −s.tr\}
+\par
+/ac′
+\par
+[\{z | z ∈ac′ ∧s.tr ≤z.tr\}/ac′]
+\par
+∧
+\par
+∃z • z ∈ac′ ∧s.tr ≤z.tr
+\end{quote}
+
+⎞
+
+\begin{quote}\small\raggedright
+⎟⎟⎟⎟⎠
+\par
+\{Definition of RA2\}
+\par
+=
+\par
+RA2(P)[\{z | z ∈ac′ ∧s.tr ≤z.tr\}/ac′] ∧∃z • z ∈ac′ ∧s.tr ≤z.tr
+\par
+\{Definition of RA1\}
+\par
+= RA1 ◦RA2(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 21.} (RA ◦A(¬ P f f ⊢Pt f ))t f = RA2 ◦RA1 ◦PBMH(¬ ok ∨P f f ∨Pt f ).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+(RA ◦A(¬ P f
+\par
+f ⊢Pt
+\par
+f ))t
+\par
+f
+\par
+\{Lemma L.G.4.7 in [35]\}
+\par
+= RA2 ◦RA1 ◦PBMH(¬ ok ∨P f
+\par
+f ∨(Pt
+\par
+f ∧true))
+\par
+\{Predicate calculus\}
+\par
+= RA2 ◦RA1 ◦PBMH(¬ ok ∨P f
+\par
+f ∨Pt
+\par
+f )
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 22.} RA(P ⊢Q ) = RA(P ⊢RA2 ◦RA1(Q )).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RA(P ⊢Q )
+\par
+\{Definition of RA\}
+\par
+= RA3 ◦RA2 ◦RA1(P ⊢Q )
+\par
+\{Lemma L.G.1.20 in [35]\}
+\par
+= RA3 ◦RA2 ◦RA1(P ⊢RA1(Q ))
+\par
+\{Theorem 71\}
+\par
+= RA3 ◦RA1 ◦RA2(P ⊢RA1(Q ))
+\par
+\{Lemma L.G.2.16 in [35]\}
+\par
+= RA3 ◦RA1 ◦RA2(P ⊢RA2 ◦RA1(Q ))
+\par
+\{Theorem 71\}
+\par
+= RA3 ◦RA2 ◦RA1(P ⊢RA2 ◦RA1(Q ))
+\par
+\{Definition of RA\}
+\par
+= RA(P ⊢RA2 ◦RA1(Q ))
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 23.} RA1(P ⊢Q ) = RA1(¬ RA1(¬ P) ⊢Q ).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+RA1(P ⊢Q )
+\par
+\{Definition of design\}
+\par
+= RA1((ok ∧P) ⇒(Q ∧ok′))
+\par
+\{Predicate calculus\}
+\par
+= RA1(¬ ok ∨¬ P ∨(Q ∧ok′))
+\par
+\{Distributivity of RA1\}
+\par
+= RA1(¬ ok) ∨RA1(¬ P) ∨RA1(Q ∧ok′)
+\par
+\{RA1 is idempotent\}
+\par
+= RA1(¬ ok) ∨RA1 ◦RA1(¬ P) ∨RA1(Q ∧ok′)
+\par
+\{Distributivity of RA1\}
+\par
+= RA1(¬ ok ∨RA1(¬ P) ∨(Q ∧ok′))
+\par
+\{Predicate calculus\}
+\par
+= RA1((ok ∧¬ RA1(¬ P)) ⇒(Q ∧ok′))
+\par
+\{Definition of design\}
+\par
+= RA1(¬ RA1(¬ P) ⊢Q )
+\par
+2
+\end{quote}
+
+\subsection{Linking}
+\noindent\textbf{Theorem 72.} ac′ ̸= ∅ ∧p2ac(¬ P f ⊢Pt) = ac′ ̸= ∅ ∧(¬ p2ac(P f ) ⊢p2ac(Pt)).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+ac′ ̸= ∅∧p2ac(¬ P f ⊢Pt)
+\par
+\{Definition of design\}
+\par
+= ac′ ̸= ∅∧p2ac((ok ∧¬ P f ) ⇒(Pt ∧ok′))
+\par
+\{Predicate calculus\}
+\par
+= ac′ ̸= ∅∧p2ac(¬ ok ∨P f ∨(Pt ∧ok′))
+\par
+\{Distributivity of p2ac (Theorem T.4.6.1 in [35])\}
+\par
+= ac′ ̸= ∅∧(p2ac(¬ ok) ∨p2ac(P f ) ∨p2ac(Pt ∧ok′))
+\par
+\{Lemmas L.C.5.5 and L.C.5.6 in [35]\}
+\par
+= ac′ ̸= ∅∧((¬ ok ∧ac′ ̸= ∅) ∨p2ac(P f ) ∨(p2ac(Pt) ∧ok′))
+\par
+\{Predicate calculus\}
+\par
+= ac′ ̸= ∅∧(¬ ok ∨p2ac(P f ) ∨(p2ac(Pt) ∧ok′))
+\par
+\{Predicate calculus\}
+\par
+= ac′ ̸= ∅∧((ok ∧¬ p2ac(P f )) ⇒(p2ac(Pt) ∧ok′))
+\par
+\{Definition of design\}
+\par
+= ac′ ̸= ∅∧(¬ p2ac(P f ) ⊢p2ac(Pt))
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 24.} Provided P is a design, ac2p(P) = (¬ ac2p(P f ) ⊢ac2p(Pt)).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+ac2p(P)
+\par
+\{Assumption: P is a design\}
+\par
+= ac2p(¬ P f ⊢Pt)
+\par
+\{Definition of design\}
+\par
+= ac2p((ok ∧¬ P f ) ⇒(Pt ∧ok′))
+\par
+\{Predicate calculus and distributivity of ac2p\}
+\par
+= ac2p(¬ ok) ∨ac2p(P f ) ∨ac2p(Pt ∧ok′)
+\par
+\{ac′ is not free\}
+\par
+= ¬ ok ∨ac2p(P f ) ∨(ac2p(Pt) ∧ok′)
+\par
+\{Predicate calculus\}
+\par
+= (ok ∧¬ ac2p(P f )) ⇒(ac2p(Pt) ∧ok′)
+\par
+\{Definition of design\}
+\par
+= (¬ ac2p(P f ) ⊢ac2p(Pt))
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 25.} ac2p ◦PBMH(P) = ac2p(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+ac2p ◦PBMH(P)
+\par
+\{Definition of ac2p\}
+\par
+= PBMH(PBMH(P))[StateII(inα)/s] ;A
+\par
+Π
+\par
+x′ : outα • s.x = x′
+\par
+\{PBMH-idempotent\}
+\par
+= PBMH(P)[StateII(inα)/s] ;A
+\par
+Π
+\par
+x′ : outα • s.x = x′
+\par
+\{Definition of ac2p\}
+\par
+= ac2p(P)
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 26.} PBMH ◦p2ac(P) = p2ac(P).
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+PBMH ◦p2ac(P)
+\par
+\{Definition of PBMH\}
+\par
+= ∃ac0 • p2ac(P)[ac0/ac′] ∧ac0 ⊆ac′
+\par
+\{Definition of p2ac\}
+\par
+= ∃ac0 • (∃z • P[s, z′/inα−ok,outα−ok′] ∧z ∈ac′)[ac0/ac′] ∧ac0 ⊆ac′
+\par
+\{Substitution\}
+\par
+= ∃ac0 • (∃z • P[s, z′/inα−ok,outα−ok′] ∧z ∈ac0) ∧ac0 ⊆ac′
+\par
+\{Property of sets\}
+\par
+= ∃z • P[s, z′/inα−ok,outα−ok′] ∧z ∈ac′
+\par
+\{Definition of p2ac\}
+\par
+= p2ac(P)
+\par
+2
+\end{quote}
+
+\subsection{State substitution lemmas}
+\noindent\textbf{Lemma 27.} Provided z is not free in P, P[z/Sα][StateII(Sα)/z] = P.
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+P[z/Sα][StateII(Sα)/z]
+\par
+\{Definition of state substitution\}
+\par
+= P[z.x0,..., z.xn/x0,..., xn][StateII(Sα)/z]
+\par
+\{Definition of StateII(Sα)\}
+\par
+= P[z.x0,..., z.xn/x0,..., xn][\{x0 ↦→x0,..., xn ↦→xn\}/z]
+\par
+\{z is not free in P\}
+\par
+= P[\{x0 ↦→x0,..., xn ↦→xn\}.x0,...,\{x0 ↦→x0,..., xn ↦→xn\}.xn/x0,..., xn]
+\par
+\{Value of state component\}
+\par
+= P[x0,..., xn/x0,..., xn]
+\par
+\{Property of substitution\}
+\par
+= P
+\par
+2
+\end{quote}
+
+\noindent\textbf{Lemma 28.} ∃z : State(Sα) • P ∧( x : Sα • z.x = x) = P[StateII(Sα)/z].
+
+
+\noindent\textbf{Proof.}
+
+
+\begin{quote}\small\raggedright
+∃z : State(Sα) • P ∧(
+\par
+Π
+\par
+x : Sα • z.x = x)
+\par
+\{Equality of records\}
+\par
+= ∃z : State(Sα) • P ∧z = \{x0 ↦→x0,..., xn ↦→xn\}
+\par
+\{Definition of StateII\}
+\par
+= ∃z : State(Sα) • P ∧StateII(Sα) = z
+\par
+\{One-point rule\}
+\par
+= P[StateII(Sα)/z]
+\par
+2
+\end{quote}
+
+\section*{References}
+\begin{enumerate}[label={[\arabic*]}, leftmargin=*, itemsep=0.4em]
+\item E.W. Dijkstra, Guarded commands, nondeterminacy and formal derivation of programs, Commun. ACM 18 (1975) 453–457.
+\item A.W. Roscoe, Understanding Concurrent Systems, Springer, 2010.
+\item C. Morgan, Programming from Specifications, Prentice Hall, 1994.
+\item R. Back, J. Wright, Refinement Calculus: A Systematic Introduction, Graduate Texts in Computer Science, Springer, 1998.
+\item J.M. Morris, A theoretical basis for stepwise refinement and the programming calculus, Sci. Comput. Program. 9 (1987) 287–306.
+\item C. Morgan, P. Gardiner, Data refinement by calculation, Acta Inform. 27 (1990) 481–503.
+\item M. Tyrrell, J. Morris, A. Butterfield, A. Hughes, A lattice-theoretic model for an algebra of communicating sequential processes, in: K. Barkaoui, A. Cavalcanti, A. Cerone (Eds.), Theoretical Aspects of Computing, ICTAC 2006, in: Lecture Notes in Computer Science, vol. 4281, Springer, Berlin/Heidelberg, 2006, pp. 123–137.
+\item A.W. Roscoe, The Theory and Practice of Concurrency, Prentice Hall, 1998.
+\item M. Oliveira, Formal Derivation of State-Rich Reactive Programs using Circus, Ph.D. thesis, University of York, 2005, \url{https://www.cs.york.ac.uk/circus/} publications/papers/06-oliveira.pdf.
+\item C.A.R. Hoare, J. He, Unifying Theories of Programming, International Series in Computer Science, Prentice Hall, 1998.
+\item I. Rewitzky, Binary multirelations, in: H. de Swart, E. Orlowska, G. Schmidt, M. Roubens (Eds.), Theory and Applications of Relational Structures as Knowledge Instruments, in: Lecture Notes in Computer Science, vol. 2929, Springer, Berlin/Heidelberg, 2003, p. 1964.
+\item A. Cavalcanti, J. Woodcock, S. Dunne, Angelic nondeterminism in the unifying theories of programming, Form. Asp. Comput. 18 (2006) 288–307.
+\item M.O. Rabin, D. Scott, Finite automata and their decision problems, IBM J. Res. Develop. 3 (1959) 114–125.
+\item S.A. Cook, The complexity of theorem-proving procedures, in: Proceedings of the Third Annual ACM Symposium on Theory of Computing, STOC ’71, ACM, New York, NY, USA, 1971, pp. 151–158.
+\item M. Schützenberger, On context-free languages and push-down automata, Inf. Control 6 (1963) 246–264.
+\item W.H. Hesselink, LR-parsing derived, Sci. Comput. Program. 19 (1992) 171–196.
+\item A.P. Martin, P.H.B. Gardiner, J.C.P. Woodcock, A tactic calculus – abridged version, Form. Asp. Comput. 8 (1996) 479–489, \url{https://doi.org/10.1007/} BF01213535.
+\item M. Oliveira, A. Cavalcanti, J. Woodcock, ArcAngel: a tactic language for refinement, Form. Asp. Comput. 15 (2003) 28–47.
+\item R. Jagadeesan, V.A. Saraswat, V. Shanbhogue, Angelic Non-determinism in Concurrent Constraint Programming, Technical Report, Xerox Park, 1991.
+\item J.N. Kok, On Logic Programming and the Refinement Calculus: Semantics Based Program Transformations, Technical Report RUU-CS-90-39, Utrecht University, 1990.
+\item R.W. Floyd, Nondeterministic algorithms, J. ACM 14 (1967) 636–644.
+\item E.W. Dijkstra, A Discipline of Programming, 1st ed., Prentice Hall, Upper Saddle River, NJ, USA, 1976.
+\item R.-J. Back, On the Correctness of Refinement in Program Development, Ph.D. thesis, Department of Computer Science, University of Helsinki, 1978.
+\item P. Gardiner, C. Morgan, Data refinement of predicate transformers, Theoret. Comput. Sci. 87 (1991) 143–162.
+\item N. Ward, I. Hayes, Applications of angelic nondeterminism, in: P.A. Bailes (Ed.), Australian Software Engineering Conference 1991: Engineering Safe Software, Proceedings, N.S.W., Australian Computer Society, Sydney, 1991, pp. 391–404.
+\item A. Cavalcanti, A. Mota, J. Woodcock, Simulink timed models for program verification, in: Z. Liu, J. Woodcock, H. Zhu (Eds.), Theories of Programming and Formal Methods, in: Lecture Notes in Computer Science, vol. 8051, Springer, Berlin, Heidelberg, 2013, pp. 82–99.
+\item J. Woodcock, J. Davies, Using Z: Specification, Refinement, and Proof, Prentice Hall, 1996.
+\item C.B. Jones, Systematic Software Development Using VDM, Prentice Hall International, 1986.
+\item A. Cavalcanti, J. Woodcock, Angelic Nondeterminism and Unifying Theories of Programming, Technical Report, University of Kent, 2004, \url{http://kar.kent.} ac.uk/14151/.
+\item P. Ribeiro, C.S.P. Relational, \url{https://perma.cc/DR5D-A6TE,} 2017.
+\item J. Woodcock, J. Bryans, S. Canham, S. Foster, The COMPASS modelling language: timed semantics in UTP, in: Communicating Process Architectures, 2014.
+\item W. Harwood, A. Cavalcanti, J. Woodcock, A theory of pointers for the UTP, in: J. Fitzgerald, A. Haxthausen, H. Yenigun (Eds.), Theoretical Aspects of Computing, ICTAC 2008, in: Lecture Notes in Computer Science, vol. 5160, Springer, Berlin/Heidelberg, 2008, pp. 141–155.
+\item B. Davey, H. Priestley, Introduction to Lattices and Order, Cambridge Mathematical Textbooks, Cambridge University Press, 2002.
+\item J. Woodcock, A. Cavalcanti, A tutorial introduction to designs in unifying theories of programming, in: E. Boiten, J. Derrick, G. Smith (Eds.), Integrated Formal Methods, in: Lecture Notes in Computer Science, vol. 2999, Springer, Berlin/Heidelberg, 2004, pp. 40–66.
+\item P. Ribeiro, Angelic Processes, Ph.D. dissertation (extended version), University of York, 2014, \url{http://arxiv.org/abs/1505.04726.}
+\item P. Ribeiro, A. Cavalcanti, UTP designs for binary multirelations, in: G. Ciobanu, D. Méry (Eds.), Theoretical Aspects of Computing ICTAC 2014, in: Lecture Notes in Computer Science, vol. 8687, Springer International Publishing, 2014, pp. 388–405.
+\item J. Woodcock, The miracle of reactive programming, in: A. Butterfield (Ed.), Unifying Theories of Programming, in: Lecture Notes in Computer Science, vol. 5713, Springer, Berlin, Heidelberg, 2010, pp. 202–217.
+\item K. Wei, J. Woodcock, A. Burns, A timed model of Circus with the reactive design miracle, in: 2010 8th IEEE International Conference on Software Engineering and Formal Methods, SEFM, 2010, pp. 315–319.
+\item K. Wei, J. Woodcock, A. Burns, Timed Circus: timed CSP with the miracle, in: 2011 16th IEEE International Conference on Engineering of Complex Computer Systems, ICECCS, 2011, pp. 55–64.
+\item B. Aman, G. Ciobanu, Real-time migration properties of rTiMo verified in Uppaal, in: Proceedings of the 11th International Conference on Software Engineering and Formal Methods, vol. 8137, SEFM 2013, Springer-Verlag, Berlin, Heidelberg, 2013, pp. 31–45.
+\item J. Sun, Y. Liu, J.S. Dong, C. Chen, Integrating specification and programs for system modeling and verification, in: 2009 Third IEEE International Symposium on Theoretical Aspects of Software Engineering, 2009, pp. 127–135.
+\item W. Xie, S. Xiang, H. Zhu, A UTP approach for rTiMo, Form. Asp. Comput. (2018).
+\item L. Shi, Y. Zhao, Y. Liu, J. Sun, J.S. Dong, S. Qin, A UTP semantics for communicating processes with shared variables and its formal encoding in PVS, Form. Asp. Comput. 30 (2018) 351–380.
+\item H. Zhu, J. He, S. Qin, P.J. Brooke, Denotational semantics and its algebraic derivation for an event-driven system-level language, Form. Asp. Comput. 27 (2015) 133–166.
+\item A. Cavalcanti, J. Woodcock, A tutorial introduction to CSP in unifying theories of programming, in: A. Cavalcanti, A. Sampaio, J. Woodcock (Eds.), Refinement Techniques in Software Engineering, in: Lecture Notes in Computer Science, vol. 3167, Springer, Berlin/Heidelberg, 2006, pp. 220–268.
+\item S. Foster, F. Zeyda, J. Woodcock, Isabelle/UTP: a mechanised theory engineering framework, in: D. Naumann (Ed.), Unifying Theories of Programming, in: Lecture Notes in Computer Science, vol. 8963, Springer International Publishing, 2015, pp. 21–41.
+\item A. Feliachi, M.-C. Gaudel, B. Wolff, Unifying theories in Isabelle/HOL, in: S. Qin (Ed.), Unifying Theories of Programming, in: Lecture Notes in Computer Science, vol. 6445, Springer, Berlin, Heidelberg, 2010, pp. 188–206.
+\item F. Zeyda, A. Cavalcanti, Encoding Circus programs in ProofPowerZ, in: A. Butterfield (Ed.), Unifying Theories of Programming, in: Lecture Notes in Computer Science, vol. 5713, Springer, Berlin, Heidelberg, 2010, pp. 218–237.
+\item A. Butterfield, The logic of U · ( T P )2, in: B. Wolff, M.-C. Gaudel, A. Feliachi (Eds.), Unifying Theories of Programming, in: Lecture Notes in Computer Science, vol. 7681, Springer, Berlin, Heidelberg, 2013, pp. 124–143.
+\end{enumerate}
+\end{document}

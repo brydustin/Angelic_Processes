@@ -1,0 +1,94 @@
+section \<open> Abstract Program Syntax \<close>
+
+theory Abstract_Prog_Syntax
+    imports "Shallow_Expressions.Shallow_Expressions"
+begin
+
+subsection \<open> Programming Operators \<close>
+
+text \<open> In the world of UTP, many programming theories use the same basic program operators. This
+  theory factors them all out as polymorphic constants and provides syntax translations to enable
+  parsing and pretty printing. \<close>
+
+consts
+  ucond    :: "'p \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> 'p \<Rightarrow> 'p"
+  useq     :: "'p \<Rightarrow> 'q \<Rightarrow> 'r" (infixr ";;" 55)
+  uassigns :: "('a, 'b) psubst \<Rightarrow> 'p" ("\<langle>_\<rangle>\<^sub>a")
+  uskip    :: "'p" ("II")
+  utest    :: "('s \<Rightarrow> bool) \<Rightarrow> 'p"
+  uwhile   :: "('s \<Rightarrow> bool) \<Rightarrow> 'p \<Rightarrow> 'p"
+  uuntil   :: "'p \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> 'p"
+
+abbreviation (input) useqh :: "'p \<Rightarrow> 'p \<Rightarrow> 'p" (infixr ";;\<^sub>h" 61) where
+"useqh P Q \<equiv> (P ;; Q)"
+
+expr_constructor ucond (0 2)
+expr_constructor useq (0 1)
+expr_constructor useqh (0 1)
+expr_constructor uassigns
+expr_constructor uskip
+expr_constructor utest
+expr_constructor uwhile
+
+nonterminal elsebranch
+
+syntax 
+  "_ucond"         :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("(3_ \<lhd> _ \<rhd>/ _)" [52,0,53] 52)
+  "_ucond_gen"     :: "logic \<Rightarrow> logic \<Rightarrow> elsebranch \<Rightarrow> logic" ("(2if _ /then /_/_ /fi)")
+  "_ucond_elseif"  :: "logic \<Rightarrow> logic \<Rightarrow> elsebranch \<Rightarrow> elsebranch" ("( elseif _ /then /_/_)")
+  "_ucond_else"    :: "logic \<Rightarrow> elsebranch" (" else /_")
+  "_ucond_no_else" :: "elsebranch" ("")
+  "_uassign"       :: "svid \<Rightarrow> logic \<Rightarrow> logic" (infix ":=" 61)
+  "_swap"          :: "svid \<Rightarrow> svid \<Rightarrow> logic" ("swap'(_, _')") (* Atomic swap *)
+  "_utest"         :: "logic \<Rightarrow> logic" ("\<questiondown>_?")
+  "_uwhile"        :: "logic \<Rightarrow> logic \<Rightarrow> logic" ("while _ do _ od")
+  "_uuntil"        :: "logic \<Rightarrow> logic \<Rightarrow> logic" ("repeat _ until _" [0, 70] 70)
+
+translations
+  "_ucond P b Q" => "CONST ucond P (b)\<^sub>e Q"
+  "_ucond_gen b P Q" => "CONST ucond P (b)\<^sub>e Q"
+  "_ucond_else P" => "P"
+  "_ucond_no_else" => "II"
+  "_ucond_gen b P (_ucond_else Q)" <= "CONST ucond P (b)\<^sub>e Q"
+  "_ucond_elseif b P Q" => "CONST ucond P (b)\<^sub>e Q"
+  "_ucond_elseif c Q (_ucond_else R)" <= "_ucond_else (CONST ucond Q (c)\<^sub>e R)"
+  "_ucond_no_else" <= "_ucond_else II"
+  "_ucond P b Q" == "CONST ucond P (b)\<^sub>e Q"
+  "_uassign x e" == "CONST uassigns (CONST subst_upd (CONST subst_id) x (e)\<^sub>e)"
+  "_uassign (_svid_tuple (_of_svid_list (x +\<^sub>L y))) e" <= "_uassign (x +\<^sub>L y) e" 
+  "_swap x y" => "(x, y) := ($y, $x)"
+  "_utest P" == "CONST utest (P)\<^sub>e"
+  "_uwhile b P" == "CONST uwhile (b)\<^sub>e P"
+  "_uuntil P b" == "CONST uuntil P (b)\<^sub>e"
+
+subsection \<open> Assertional Calculi \<close>
+
+syntax
+  "_ghost_old" :: "id" \<comment> \<open> A distinguished name for the ghost state ("old") \<close>
+
+parse_translation \<open> 
+  [(@{syntax_const "_ghost_old"}, fn ctx => fn term => Syntax.free "old")]\<close>
+
+consts hoare_rel :: "('s\<^sub>1 \<Rightarrow> bool) \<Rightarrow> 'p \<Rightarrow> ('s\<^sub>1 \<Rightarrow> 's\<^sub>2 \<Rightarrow> bool) \<Rightarrow> bool"
+consts thoare_rel :: "('s\<^sub>1 \<Rightarrow> bool) \<Rightarrow> 'p \<Rightarrow> ('s\<^sub>1 \<Rightarrow> 's\<^sub>2 \<Rightarrow> bool) \<Rightarrow> bool"
+
+abbreviation hoare :: "('s \<Rightarrow> bool) \<Rightarrow> 'p \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> bool" where
+"hoare P C Q \<equiv> hoare_rel P C (\<lambda> x. Q)"
+
+abbreviation thoare :: "('s \<Rightarrow> bool) \<Rightarrow> 'p \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> bool" where
+"thoare P C Q \<equiv> thoare_rel P C (\<lambda> x. Q)"
+
+syntax 
+  "_hoare"  :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("(2H{_} /_) /{_}")
+  "_hoare"  :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("(2\<^bold>{_\<^bold>} /_) /\<^bold>{_\<^bold>}")
+  "_thoare" :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("(2H[_] /_) /[_]")
+
+translations
+  "H{P} C {Q}" => "CONST hoare_rel (P)\<^sub>e C (\<lambda> _ghost_old. (Q)\<^sub>e)"
+  "H{P} C {Q}" <= "CONST hoare_rel (P)\<^sub>e C (\<lambda> old. (Q)\<^sub>e)"
+  "H{P} C {Q}" <= "CONST hoare (P)\<^sub>e C (Q)\<^sub>e"
+  "H[P] C [Q]" => "CONST thoare_rel (P)\<^sub>e C (\<lambda> _ghost_old. (Q)\<^sub>e)"
+  "H[P] C [Q]" <= "CONST thoare_rel (P)\<^sub>e C (\<lambda> old. (Q)\<^sub>e)"
+  "H[P] C [Q]" <= "CONST thoare (P)\<^sub>e C (Q)\<^sub>e"
+
+end

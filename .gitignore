@@ -1,0 +1,11 @@
+Isabelle2025-2/
+**/output/
+*~
+.Rhistory
+.codex
+.claude/
+*.aux
+*.out
+*.toc
+browser_info/
+.isabelle/

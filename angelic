@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Launch jEdit on Angelic_Processes.thy with the prebuilt session heap.
+# Run as: ./angelic   (from anywhere — this script cds into its own dir)
+set -euo pipefail
+cd "$(dirname "$(readlink -f "$0")")"
+exec env ISABELLE_IDENTIFIER=IsabelleAPRoadmap \
+  ./Isabelle2025-2/bin/isabelle jedit \
+    -l Angelic_Processes \
+    Angelic_Processes.thy "$@"

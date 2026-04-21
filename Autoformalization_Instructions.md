@@ -11,50 +11,29 @@ The current entry point is:
 
 ## Isabelle Commands
 
-The normal project build command should eventually be:
+The project uses an isolated Isabelle identifier, `IsabelleAPRoadmap`, to avoid
+the `Z_Toolkit` name clash with AFP. The project directory is registered in
+`~/.isabelle/IsabelleAPRoadmap/ROOTS`, and the local `ROOTS` file lists the
+dependency subdirectories with relative paths. As a result, neither `build` nor
+`jedit` needs any `-d` flags.
 
+### Launch jEdit
 ```bash
-/home/dusty/Desktop/Isabelle/Angelic_UTP/Isabelle2025-2/bin/isabelle build \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP \
-  -l Angelic_Processes
+./angelic
 ```
+The `angelic` script (in the project root) cds into the project directory and
+runs `isabelle jedit -l Angelic_Processes Angelic_Processes.thy` under the
+`IsabelleAPRoadmap` identifier.
 
-At present, the default Isabelle user setup loads AFP globally. That collides with
-the local `Z_Toolkit-main` session because both define a session named `Z_Toolkit`.
-Use an isolated Isabelle identifier for this project:
-
-```bash
-cd /home/dusty/Desktop/Isabelle/Angelic_UTP
-
-ISABELLE_IDENTIFIER=IsabelleAPRoadmap \
-/home/dusty/Desktop/Isabelle/Angelic_UTP/Isabelle2025-2/bin/isabelle build \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Abstract_Prog_Syntax-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Z_Toolkit-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main/Z \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Optics-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/UTP-main \
-  Angelic_Processes
-```
-
-Open the theory in jEdit with:
-
+### Build the session
 ```bash
 cd /home/dusty/Desktop/Isabelle/Angelic_UTP
-
 ISABELLE_IDENTIFIER=IsabelleAPRoadmap \
-/home/dusty/Desktop/Isabelle/Angelic_UTP/Isabelle2025-2/bin/isabelle jedit \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Abstract_Prog_Syntax-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Z_Toolkit-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Shallow-Expressions-main/Z \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/Optics-main \
-  -d /home/dusty/Desktop/Isabelle/Angelic_UTP/UTP-main \
-  -l Angelic_Processes \
-  /home/dusty/Desktop/Isabelle/Angelic_UTP/Angelic_Processes.thy
+  ./Isabelle2025-2/bin/isabelle build Angelic_Processes
 ```
+
+Add `-b` to write a heap image (required once so that `-l Angelic_Processes`
+in jEdit loads instantly).
 
 ## Roadmap Discipline
 
